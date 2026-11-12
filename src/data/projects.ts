@@ -110,7 +110,7 @@ export const ADDITIONAL_PROJECTS: SecondaryProject[] = [
     summary:
       "A Shopify storefront recreation capturing the aesthetic and shopping experience of a luxury fragrance brand.",
     technologies: ["Next.js", "React", "TypeScript", "Tailwind CSS"],
-    liveUrl: "https://fraganote-shopify-hvfzocs3a-arshin-inc.vercel.app/",
+    liveUrl: "https://fraganote-shopify.vercel.app/",
     githubUrl: "https://github.com/arshin29",
     isStorefrontRecreation: true,
   },

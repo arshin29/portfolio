@@ -3,14 +3,41 @@
 @tailwind utilities;
 
 :root {
-  --sky-bg-base: #080e18;
-  --sky-bg-surface: #0e1726;
+  --sky-top: #4782bb;
+  --sky-mid: #7daee0;
+  --sky-bottom: #cbe0f4;
+  --sky-ink: #101623;
+  --sky-secondary: #37485e;
+  --sky-muted: #5e728b;
+  --sky-glass-bg: rgba(255, 255, 255, 0.52);
+  --sky-glass-border: rgba(255, 255, 255, 0.45);
+  --sky-glass-text: #152233;
+  --sky-panel-glass: rgba(255, 255, 255, 0.76);
+  --sky-glass-filter: blur(18px) saturate(1.2);
+  --sky-bottom-blur-height: 6.5rem;
+  --sky-home-content-width: 692px;
+}
+
+@media (max-width: 700px) {
+  :root {
+    --sky-bottom-blur-height: 5rem;
+  }
+}
+
+[data-theme="night"], html.dark {
+  --theme-blend: 0;
+  --daylight: 0;
+  --sky-top: #172340;
+  --sky-mid: #202d4b;
+  --sky-bottom: #2b3b56;
   --sky-ink: #f6f8fd;
   --sky-secondary: #a7b8cf;
   --sky-muted: #677b96;
-  --sky-border: rgba(255, 255, 255, 0.08);
-  --sky-border-hover: rgba(255, 255, 255, 0.16);
-  --sky-accent: #60a5fa;
+  --sky-glass-bg: rgba(16, 29, 48, 0.7);
+  --sky-glass-border: rgba(255, 255, 255, 0.12);
+  --sky-glass-text: #f6f8fd;
+  --sky-panel-glass: rgba(18, 28, 44, 0.82);
+  --sky-glass-filter: blur(18px) saturate(1.2);
 }
 
 html {
@@ -18,8 +45,41 @@ html {
   scroll-padding-top: 80px;
 }
 
+.sky-app {
+  --daylight: 1;
+  --theme-blend: 1;
+  --theme-midpoint: 0;
+  --sky-ink: color-mix(in oklab, #f6f8fd, #162332 calc(var(--theme-blend, 1) * 100%));
+  --sky-secondary: color-mix(in oklab, #e3e8f1, #344353 calc(var(--theme-blend, 1) * 100%));
+  --sky-controls-popup: #ffffff14;
+  --sky-controls-hover: #ffffff1a;
+  --sky-controls-track: color-mix(in oklab, #ffffff17, #2c466011 calc(var(--theme-blend, 1) * 100%));
+  --sky-controls-selected: color-mix(in oklab, #ffffff30, #ffffffb3 calc(var(--theme-blend, 1) * 100%));
+  --sky-panel-glass: color-mix(in srgb, rgba(18, 28, 44, 0.82), rgba(255, 255, 255, 0.76) calc(var(--theme-blend, 1) * 100%));
+  --sky-glass-filter: blur(18px) saturate(1.2);
+  --sky-motion-on: #0a84ff;
+  color: var(--sky-ink);
+  min-height: 100vh;
+  position: relative;
+}
+
+.living-sky {
+  position: fixed;
+  inset: 0;
+  z-index: -2;
+  pointer-events: none;
+  background: linear-gradient(180deg, var(--sky-top, #4782bb) 0%, var(--sky-mid, #7daee0) 45%, var(--sky-bottom, #cbe0f4) 100%);
+  transition: background 0.8s cubic-bezier(0.2, 0.8, 0.2, 1);
+}
+
+.living-sky canvas {
+  width: 100%;
+  height: 100%;
+  display: block;
+}
+
 body {
-  background-color: var(--sky-bg-base);
+  background: transparent;
   color: var(--sky-ink);
   font-family: var(--font-geist-sans), -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
   -webkit-font-smoothing: antialiased;
@@ -33,23 +93,198 @@ body {
   color: #ffffff;
 }
 
-/* Subtle atmospheric star field and depth canvas */
+/* Sky Widget Controls matching Thoufik Reference */
+.sky-options-trigger {
+  width: 100%;
+  min-height: 32px;
+  color: var(--sky-secondary, #a7b8cf);
+  border-radius: 999px;
+  justify-content: flex-start;
+  align-items: center;
+  gap: 8px;
+  font-size: 14px;
+  display: flex;
+  cursor: pointer;
+  background: transparent;
+  border: none;
+  padding: 0;
+  transition: color 0.15s ease;
+}
+.sky-options-trigger:hover {
+  color: var(--sky-ink, #ffffff);
+}
+.sky-extra-options {
+  display: grid;
+  grid-template-rows: 0fr;
+  opacity: 0;
+  transition: grid-template-rows 0.28s cubic-bezier(0.2, 0, 0, 1), opacity 0.2s ease-out;
+}
+.sky-extra-options[data-open="true"] {
+  grid-template-rows: 1fr;
+  opacity: 1;
+}
+.sky-extra-options-content {
+  min-height: 0;
+  overflow: hidden;
+}
+.sky-weather-options,
+.sky-motion-row {
+  justify-content: space-between;
+  align-items: center;
+  gap: 12px;
+  min-height: 42px;
+  font-size: 13.5px;
+  display: flex;
+}
+.sky-segments {
+  background: rgba(255, 255, 255, 0.1);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  border-radius: 999px;
+  padding: 3px;
+  display: flex;
+  position: relative;
+  gap: 2px;
+}
+.sky-segment-btn {
+  min-width: 42px;
+  height: 32px;
+  border-radius: 999px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 12.5px;
+  color: rgba(255, 255, 255, 0.65);
+  transition: all 0.2s ease;
+  cursor: pointer;
+  background: transparent;
+  border: none;
+  padding: 0 10px;
+}
+.sky-segment-btn:hover {
+  color: rgba(255, 255, 255, 0.9);
+}
+.sky-segment-btn[aria-pressed="true"] {
+  color: #ffffff;
+  font-weight: 500;
+  background: rgba(255, 255, 255, 0.25);
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.16);
+}
+.sky-motion-switch {
+  width: 44px;
+  height: 26px;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.2);
+  position: relative;
+  cursor: pointer;
+  transition: background 0.2s cubic-bezier(0.2, 0, 0, 1);
+  padding: 2px;
+  display: flex;
+  align-items: center;
+  border: none;
+  outline: none;
+}
+.sky-motion-switch[aria-checked="true"] {
+  background: #0a84ff;
+}
+.sky-motion-switch-thumb {
+  width: 22px;
+  height: 22px;
+  border-radius: 50%;
+  background: #ffffff;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.3);
+  transition: transform 0.2s cubic-bezier(0.2, 0, 0, 1);
+}
+.sky-motion-switch[aria-checked="true"] .sky-motion-switch-thumb {
+  transform: translateX(18px);
+}
+.sky-volume-control {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-left: auto;
+}
+.sky-volume-slider {
+  appearance: none;
+  -webkit-appearance: none;
+  width: 68px;
+  height: 3px;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.28);
+  outline: none;
+  cursor: pointer;
+}
+.sky-volume-slider::-webkit-slider-thumb {
+  appearance: none;
+  -webkit-appearance: none;
+  width: 12px;
+  height: 12px;
+  border-radius: 50%;
+  background: #ffffff;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.35);
+  cursor: pointer;
+}
+.sky-volume-slider::-moz-range-thumb {
+  width: 12px;
+  height: 12px;
+  border-radius: 50%;
+  background: #ffffff;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.35);
+  cursor: pointer;
+  border: none;
+}
+
+/* Daytime Controls Overrides for High Contrast */
+.sky-segments.day {
+  background: rgba(0, 0, 0, 0.06);
+  border-color: rgba(0, 0, 0, 0.08);
+}
+.sky-segments.day .sky-segment-btn {
+  color: rgba(20, 33, 50, 0.65);
+}
+.sky-segments.day .sky-segment-btn:hover {
+  color: rgba(20, 33, 50, 0.9);
+}
+.sky-segments.day .sky-segment-btn[aria-pressed="true"] {
+  color: #142132;
+  background: rgba(0, 0, 0, 0.12);
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.08);
+}
+.sky-motion-switch.day {
+  background: rgba(0, 0, 0, 0.14);
+}
+.sky-motion-switch.day[aria-checked="true"] {
+  background: #0a84ff;
+}
+.sky-volume-slider.day {
+  background: rgba(0, 0, 0, 0.18);
+}
+.sky-volume-slider.day::-webkit-slider-thumb {
+  background: #142132;
+}
+.sky-volume-slider.day::-moz-range-thumb {
+  background: #142132;
+}
+
+/* Atmospheric night-sky star canvas */
 .night-sky-canvas {
   position: fixed;
   inset: 0;
   pointer-events: none;
   z-index: -1;
-  background-color: #080e18;
+  opacity: 0;
+  transition: opacity 0.8s ease;
   background-image: 
-    radial-gradient(1px 1px at 30px 40px, rgba(255, 255, 255, 0.22), transparent 1px),
-    radial-gradient(1.2px 1.2px at 150px 110px, rgba(147, 197, 253, 0.3), transparent 1.2px),
-    radial-gradient(1px 1px at 280px 220px, rgba(255, 255, 255, 0.18), transparent 1px),
-    radial-gradient(1.5px 1.5px at 380px 70px, rgba(191, 219, 254, 0.22), transparent 1.5px),
-    radial-gradient(1px 1px at 510px 300px, rgba(255, 255, 255, 0.2), transparent 1px),
-    radial-gradient(1.2px 1.2px at 620px 180px, rgba(147, 197, 253, 0.25), transparent 1.2px),
-    radial-gradient(850px 600px at 85% 15%, rgba(26, 48, 84, 0.16), transparent 70%),
-    radial-gradient(750px 650px at 15% 75%, rgba(18, 35, 62, 0.14), transparent 70%);
-  background-size: 650px 450px, 650px 450px, 650px 450px, 650px 450px, 650px 450px, 650px 450px, 100% 100%, 100% 100%;
+    radial-gradient(1px 1px at 30px 40px, rgba(255, 255, 255, 0.25), transparent 1px),
+    radial-gradient(1.2px 1.2px at 150px 110px, rgba(147, 197, 253, 0.35), transparent 1.2px),
+    radial-gradient(1px 1px at 280px 220px, rgba(255, 255, 255, 0.2), transparent 1px),
+    radial-gradient(1.5px 1.5px at 380px 70px, rgba(191, 219, 254, 0.25), transparent 1.5px),
+    radial-gradient(1px 1px at 510px 300px, rgba(255, 255, 255, 0.22), transparent 1px),
+    radial-gradient(1.2px 1.2px at 620px 180px, rgba(147, 197, 253, 0.3), transparent 1.2px);
+  background-size: 650px 450px;
+}
+
+[data-theme="night"] .night-sky-canvas {
+  opacity: 1;
 }
 
 /* Custom scrollbars */
@@ -57,68 +292,2678 @@ body {
   width: 6px;
   height: 6px;
 }
-
 ::-webkit-scrollbar-track {
   background: transparent;
 }
-
 ::-webkit-scrollbar-thumb {
-  background: rgba(255, 255, 255, 0.12);
+  background: rgba(0, 0, 0, 0.15);
   border-radius: 999px;
 }
-
 ::-webkit-scrollbar-thumb:hover {
-  background: rgba(255, 255, 255, 0.22);
+  background: rgba(0, 0, 0, 0.25);
 }
 
-/* AI word subtle shimmer & glow animation */
-@keyframes ai-glow-sweep {
-  0%, 100% {
-    background-position: 0% 50%;
-    filter: drop-shadow(0 0 2px rgba(96, 165, 250, 0.35));
-  }
-  50% {
-    background-position: 100% 50%;
-    filter: drop-shadow(0 0 5px rgba(147, 197, 253, 0.65));
-  }
+/* =========================================================================
+   EDGE FADE (DYNAMIC VIEWPORT BOTTOM BLUR) - REFERENCE ARCHITECTURE
+   ========================================================================= */
+.edge-fade {
+  pointer-events: none;
+  position: fixed;
+  left: 0;
+  right: 0;
+  z-index: 18;
 }
 
-.ai-pulse-word {
-  background: linear-gradient(90deg, #93c5fd 0%, #ffffff 50%, #93c5fd 100%);
-  background-size: 200% auto;
-  -webkit-background-clip: text;
-  background-clip: text;
-  -webkit-text-fill-color: transparent;
-  animation: ai-glow-sweep 4s ease-in-out infinite;
+.edge-fade--bottom {
+  bottom: 0;
+  --edge-away: top;
 }
 
-/* Computer Science animated text glow */
-@keyframes cs-text-glow {
-  0%, 100% {
-    color: #f1f5f9;
-    text-shadow: 0 0 8px rgba(147, 197, 253, 0.4), 0 0 16px rgba(147, 197, 253, 0.15);
-  }
-  50% {
-    color: #ffffff;
-    text-shadow: 0 0 12px rgba(191, 219, 254, 0.8), 0 0 24px rgba(147, 197, 253, 0.45), 0 0 36px rgba(96, 165, 250, 0.22);
-  }
+.edge-fade--top {
+  top: 0;
+  --edge-away: bottom;
 }
 
-.cs-glow-text {
-  font-weight: 500;
-  color: #f8fafc;
-  animation: cs-text-glow 4.5s ease-in-out infinite;
-  will-change: text-shadow, color;
+.edge-fade > span {
+  opacity: calc(var(--edge-level, 1) * var(--edge-scroll, 1));
+  transition: opacity 0.24s ease-out;
+  position: absolute;
+  inset: 0;
+}
+
+.edge-fade > i {
+  opacity: calc(var(--edge-level, 1) * var(--edge-scroll, 1));
+  background: linear-gradient(
+    to var(--edge-away, bottom),
+    color-mix(in srgb, var(--edge-tint, var(--sky-bottom)) 34%, transparent),
+    transparent
+  );
+  transition: opacity 0.24s ease-out;
+  position: absolute;
+  inset: 0;
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .ai-pulse-word {
-    animation: none;
-    -webkit-text-fill-color: #e2e8f0;
-  }
-  .cs-glow-text {
-    animation: none;
-    color: #ffffff;
-    text-shadow: 0 0 8px rgba(147, 197, 253, 0.45);
+  .edge-fade > span,
+  .edge-fade > i {
+    transition: none;
   }
 }
+
+@supports not ((-webkit-backdrop-filter: blur(1px)) or (backdrop-filter: blur(1px))) {
+  .edge-fade > span {
+    display: none;
+  }
+}
+
+:root[data-footer-fade="off"] .edge-fade--bottom > span,
+:root[data-footer-fade="off"] .edge-fade--bottom > i {
+  visibility: hidden;
+  transition: opacity 0.24s ease-out, visibility 0s linear 0.24s;
+}
+
+/* =========================================================================
+   STAMP CARDS (.pc) - REFERENCE PHYSICAL PAPER ARCHITECTURE
+   ========================================================================= */
+.project-postcards {
+  width: min(var(--sky-home-content-width, 692px), calc(100% - 48px));
+  gap: 120px;
+  margin: 0 auto;
+  padding-bottom: 60px;
+  display: grid;
+}
+
+.pc {
+  --mx: 50;
+  --my: 40;
+  --rx: 0deg;
+  --ry: 0deg;
+  --paper: #fbfbf9;
+  --ink: #1f2732;
+  --blue: #2c4288;
+  --scallop: 1.05cqw;
+  aspect-ratio: 1.5;
+  perspective: 1800px;
+  cursor: pointer;
+  -webkit-user-select: none;
+  user-select: none;
+  -webkit-tap-highlight-color: transparent;
+  width: 100%;
+  position: relative;
+  container-type: inline-size;
+}
+
+.pc-tilt {
+  width: 100%;
+  height: 100%;
+  transform-style: preserve-3d;
+  transform: rotateX(var(--rx)) rotateY(var(--ry));
+  transition: transform 0.7s cubic-bezier(0.2, 0.7, 0.2, 1);
+}
+
+.pc[data-live] .pc-tilt {
+  transition-duration: 0.16s;
+  transition-timing-function: ease-out;
+}
+
+.pc-turner {
+  width: 100%;
+  height: 100%;
+  transform-style: preserve-3d;
+  transition: transform 0.8s cubic-bezier(0.3, 0.7, 0.2, 1);
+  position: relative;
+}
+
+.pc[data-turned] .pc-turner {
+  transform: rotateY(180deg);
+}
+
+.pc-side {
+  color: var(--ink);
+  backface-visibility: hidden;
+  display: block;
+  position: absolute;
+  inset: 0;
+}
+
+.pc-back {
+  transform: rotateY(180deg);
+}
+
+.pc:not([data-turned]) .pc-back,
+.pc[data-turned] .pc-front {
+  pointer-events: none;
+}
+
+.pc:has(.pc-key:focus-visible) .pc-paper {
+  box-shadow: inset 0 0 0 0.3cqw var(--blue);
+}
+
+.pc-key {
+  clip-path: inset(50%);
+  white-space: nowrap;
+  width: 1px;
+  height: 1px;
+  position: absolute;
+  overflow: hidden;
+}
+
+/* Scalloped Stamp Perforation Mask with Authentic Physical Paper Texture */
+.pc-paper {
+  box-sizing: border-box;
+  background: linear-gradient(rgba(255, 255, 255, 0.62) 0 0), url(/sky/contact-paper-texture.webp) center / 120% auto, var(--paper, #fbfbf9);
+  background-blend-mode: normal, multiply, normal;
+  --step: 3.3333cqw;
+  --corner: 1.8cqw;
+  width: 100%;
+  height: 100%;
+  box-shadow: 0 16px 36px -6px rgba(0, 0, 0, 0.12), 0 4px 12px rgba(0, 0, 0, 0.06);
+  -webkit-mask: linear-gradient(#000 0 0) center / calc(100% - 2 * var(--scallop)) calc(100% - 2 * var(--scallop)) no-repeat,
+    radial-gradient(circle var(--scallop), #0000 96%, #000) calc(var(--step) / -2) calc(var(--step) / -2) / var(--step) var(--step),
+    linear-gradient(#000 0 0) left top / var(--corner) var(--corner) no-repeat,
+    linear-gradient(#000 0 0) right top / var(--corner) var(--corner) no-repeat,
+    linear-gradient(#000 0 0) left bottom / var(--corner) var(--corner) no-repeat,
+    linear-gradient(#000 0 0) right bottom / var(--corner) var(--corner) no-repeat;
+  mask: linear-gradient(#000 0 0) center / calc(100% - 2 * var(--scallop)) calc(100% - 2 * var(--scallop)) no-repeat,
+    radial-gradient(circle var(--scallop), #0000 96%, #000) calc(var(--step) / -2) calc(var(--step) / -2) / var(--step) var(--step),
+    linear-gradient(#000 0 0) left top / var(--corner) var(--corner) no-repeat,
+    linear-gradient(#000 0 0) right top / var(--corner) var(--corner) no-repeat,
+    linear-gradient(#000 0 0) left bottom / var(--corner) var(--corner) no-repeat,
+    linear-gradient(#000 0 0) right bottom / var(--corner) var(--corner) no-repeat;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 0;
+  padding: 0;
+  display: grid;
+  position: relative;
+}
+
+/* Microscopic print noise layer */
+.pc-paper::before {
+  content: "";
+  z-index: 0;
+  pointer-events: none;
+  mix-blend-mode: multiply;
+  opacity: 0.36;
+  background: url(/postcard/noise.svg) 0 0 / 22cqw 22cqw;
+  position: absolute;
+  inset: 0;
+}
+
+/* Paper lighting sheen */
+.pc-paper::after {
+  content: "";
+  pointer-events: none;
+  background: radial-gradient(circle at calc(var(--mx) * 1%) calc(var(--my) * 1%), rgba(255, 255, 255, 0.18), transparent 52%),
+    linear-gradient(calc(100deg + (var(--mx) - 50) * 0.6deg), rgba(255, 255, 255, 0.05), transparent 40%, rgba(60, 44, 20, 0.06));
+  mix-blend-mode: soft-light;
+  position: absolute;
+  inset: 0;
+}
+
+/* Postcard Left Column */
+.pc-left {
+  flex-direction: column;
+  min-width: 0;
+  padding: 6cqw 5cqw 5.4cqw 6cqw;
+  display: flex;
+  position: relative;
+}
+
+.pc-title {
+  letter-spacing: -0.005em;
+  text-transform: uppercase;
+  text-wrap: balance;
+  color: color-mix(in srgb, var(--accent, #2c4288) 78%, #1a2a3a);
+  font-family: Instrument Serif, Georgia, serif;
+  font-size: 5.2cqw;
+  line-height: 0.98;
+}
+
+.pc-about {
+  color: #3a352d;
+  text-wrap: pretty;
+  max-width: 37cqw;
+  margin-top: 2cqw;
+  font-family: Kalam, Bradley Hand, cursive;
+  font-size: 2.3cqw;
+  line-height: 1.5;
+  display: block;
+}
+
+.pc-field {
+  border-bottom: 0.12cqw solid color-mix(in srgb, var(--accent, #2c4288) 45%, transparent);
+  letter-spacing: 0.06em;
+  color: #6d665a;
+  text-transform: uppercase;
+  align-items: baseline;
+  gap: 1.6cqw;
+  margin-top: 2.4cqw;
+  padding-bottom: 0.8cqw;
+  font-size: 1.5cqw;
+  display: flex;
+}
+
+.pc-title + .pc-about + .pc-field {
+  margin-top: 3.4cqw;
+}
+
+.pc-title + .pc-field {
+  margin-top: 4cqw;
+}
+
+.pc-field em {
+  letter-spacing: 0;
+  text-transform: none;
+  color: #3a352d;
+  font-family: Kalam, Bradley Hand, cursive;
+  font-size: 2.2cqw;
+  font-style: normal;
+}
+
+.pc-marks {
+  height: 10.5cqw;
+  margin-top: auto;
+  position: relative;
+}
+
+.pc-mark {
+  opacity: 0.9;
+  mix-blend-mode: multiply;
+  width: 11cqw;
+  font-family: Georgia, serif;
+  position: absolute;
+}
+
+.pc-mark[data-tone="blue"] {
+  color: var(--blue, #2c3f8f);
+  bottom: 0;
+  left: 0;
+  transform: rotate(-16deg);
+}
+
+.pc-mark[data-tone="green"] {
+  color: #1f7a46;
+  bottom: 0.4cqw;
+  left: 8cqw;
+  transform: rotate(9deg);
+}
+
+/* Postcard Right Column Mockup Display */
+.pc-frame {
+  background: #fdfdfb;
+  margin: 4.4cqw 4.4cqw 4.4cqw 0;
+  padding: 1.5cqw 1.5cqw 5.6cqw;
+  display: block;
+  position: relative;
+  box-shadow: 0 0 0 0.1cqw #2a262014;
+}
+
+.pc-frame::after {
+  content: "";
+  pointer-events: none;
+  mix-blend-mode: multiply;
+  opacity: 0.16;
+  background: url(/postcard/noise.svg) 0 0 / 16cqw 16cqw;
+  position: absolute;
+  inset: 0;
+}
+
+.pc-mock {
+  background: linear-gradient(#f0e8d612 0 0),
+    radial-gradient(120% 90% at calc(30% + var(--mx) * 0.2%) 0%, rgba(255, 255, 255, 0.16), transparent 60%),
+    linear-gradient(160deg, var(--from, #3b2a82), var(--to, #9a7cf2));
+  width: 100%;
+  height: 100%;
+  display: block;
+  position: relative;
+  overflow: hidden;
+}
+
+.pc-grain {
+  z-index: 3;
+  pointer-events: none;
+  mix-blend-mode: overlay;
+  opacity: 0.55;
+  background: url(/postcard/noise.svg) 0 0 / 18cqw 18cqw;
+  position: absolute;
+  inset: 0;
+}
+
+.pc-mock::after {
+  content: "";
+  z-index: 3;
+  pointer-events: none;
+  background: radial-gradient(130% 110% at 50% 45%, #0000 55%, #00000038);
+  position: absolute;
+  inset: 0;
+}
+
+.pc-devices {
+  display: block;
+  position: absolute;
+  inset: 0;
+}
+
+.pc-shot {
+  display: block;
+  position: absolute;
+  filter: drop-shadow(0 0.5cqw 1cqw rgba(18, 10, 60, 0.35)) drop-shadow(0 1.6cqw 2.6cqw rgba(18, 10, 60, 0.35));
+  border-radius: 1.1cqw 0 0;
+  inset: 5.5cqw 0 0 4cqw;
+}
+
+.pc-shot img {
+  object-fit: cover;
+  object-position: 0 0;
+  border-radius: inherit;
+  width: 100%;
+  height: 100%;
+  display: block;
+  box-shadow: 0 0 0 0.1cqw rgba(255, 255, 255, 0.35);
+}
+
+.pc-glass {
+  border-radius: inherit;
+  background: linear-gradient(115deg, transparent calc(var(--mx) * 0.6% - 20%), rgba(255, 255, 255, 0.22) calc(var(--mx) * 0.6% + 2%), transparent calc(var(--mx) * 0.6% + 24%));
+  mix-blend-mode: screen;
+  pointer-events: none;
+  position: absolute;
+  inset: 0;
+}
+
+/* Holographic Glitter Sticker in the center - Subtle restrained shimmer */
+@keyframes sticker-shimmer {
+  0%, 65% {
+    opacity: 0;
+    background-position: -120% -120%;
+  }
+  75% {
+    opacity: 0.28;
+  }
+  86% {
+    opacity: 0.38;
+    background-position: 180% 180%;
+  }
+  95%, 100% {
+    opacity: 0;
+    background-position: 180% 180%;
+  }
+}
+
+/* =========================================================================
+   3D Holographic Interactive Peeling Sticker (Matches Thoufik)
+   ========================================================================= */
+.pc-sticker {
+  z-index: 2;
+  aspect-ratio: 1;
+  cursor: grab;
+  touch-action: none;
+  width: 12cqw;
+  transform: translate(calc(var(--sx, 0) * 1cqw), calc(var(--sy, 0) * 1cqw));
+  margin: -6cqw 0 0 -6cqw;
+  position: absolute;
+  top: 50%;
+  left: 50%;
+}
+
+.pc-cut {
+  transform: rotate(var(--tilt, 0deg));
+  filter: drop-shadow(0.6cqw 0 #fff) drop-shadow(-0.6cqw 0 #fff) drop-shadow(0 0.6cqw #fff) drop-shadow(0 -0.6cqw #fff) drop-shadow(0.45cqw 0.45cqw #fff) drop-shadow(-0.45cqw -0.45cqw #fff) drop-shadow(0.45cqw -0.45cqw #fff) drop-shadow(-0.45cqw 0.45cqw #fff);
+  display: block;
+  position: absolute;
+  inset: 0;
+  transition: opacity 0.35s ease;
+}
+
+.pc-cut img {
+  object-fit: contain;
+  width: 100%;
+  height: 100%;
+  display: block;
+}
+
+.pc-sticker[data-ready] .pc-cut {
+  opacity: 0;
+}
+
+.pc-sticker-canvas {
+  pointer-events: none;
+  width: 160%;
+  height: 160%;
+  position: absolute;
+  top: -30%;
+  left: -30%;
+}
+
+/* Postcard Back Kraft Paper */
+.pc-kraft {
+  --paper: #f6f1e6;
+  --wash: 0.45;
+  background: linear-gradient(155deg, rgba(255, 255, 255, 0.4) 0%, transparent 45%, color-mix(in srgb, var(--accent, #2c4288) 4%, transparent)),
+              linear-gradient(rgba(255, 255, 255, var(--wash)) 0 0),
+              url(/sky/contact-paper-texture.webp) center / 120% auto,
+              var(--paper);
+  background-blend-mode: normal, normal, multiply, normal;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 0.92fr);
+  gap: 7cqw;
+  padding: 5.4cqw 6cqw;
+}
+
+.pc-back-col {
+  flex-direction: column;
+  min-width: 0;
+  display: flex;
+}
+
+.pc-back .pc-title {
+  font-size: 4.6cqw;
+}
+
+.pc-stats {
+  margin: 5cqw 0 0;
+  display: grid;
+}
+
+.pc-stats div {
+  border-bottom: 0.15cqw solid rgba(58, 53, 45, 0.38);
+  flex-direction: column;
+  gap: 0.4cqw;
+  margin-bottom: 2.2cqw;
+  padding-bottom: 2.2cqw;
+  display: flex;
+}
+
+.pc-stats div:last-child {
+  border-bottom: 0;
+  margin-bottom: 0;
+  padding-bottom: 0;
+}
+
+.pc-stats dd {
+  white-space: nowrap;
+  color: color-mix(in srgb, var(--accent, #2c4288) 78%, #1a2a3a);
+  margin: 0;
+  font-family: Instrument Serif, Georgia, serif;
+  font-size: 7.2cqw;
+  line-height: 1;
+}
+
+.pc-stats dt {
+  color: #3a352d;
+  font-family: Kalam, Bradley Hand, cursive;
+  font-size: 2.2cqw;
+  line-height: 1.3;
+}
+
+.pc-story {
+  color: #3a352d;
+  text-wrap: pretty;
+  margin-top: 2cqw;
+  font-family: Kalam, Bradley Hand, cursive;
+  font-size: 2.3cqw;
+  line-height: 1.55;
+  display: block;
+}
+
+.pc-facts {
+  color: #6d665a;
+  margin: 2.2cqw 0 0;
+  padding: 0;
+  font-family: Kalam, Bradley Hand, cursive;
+  font-size: 1.95cqw;
+  line-height: 1.45;
+  list-style: none;
+}
+
+.pc-facts li::before {
+  content: "- ";
+}
+
+/* Postcard Back Stamp Action Button */
+.pc-stamp {
+  --u: 1cqw;
+  --step: calc(var(--u) * 1.9);
+  --hole: calc(var(--u) * 0.72);
+  width: calc(var(--u) * 34);
+  height: calc(var(--u) * 11.4);
+  align-self: flex-start;
+  margin-top: 5cqw;
+  display: block;
+  position: relative;
+  transform: rotate(-1.5deg);
+  text-decoration: none;
+  cursor: pointer;
+}
+
+.pc-stamp-lift {
+  display: block;
+  position: absolute;
+  inset: 0;
+}
+
+.pc-stamp-paper {
+  background: url(/postcard/tex-grain.png) 0 0 / calc(var(--u) * 12) calc(var(--u) * 12), #fffdf9;
+  background-blend-mode: multiply, normal;
+  -webkit-mask: linear-gradient(#000 0 0) center / calc(100% - 2 * var(--hole)) calc(100% - 2 * var(--hole)) no-repeat,
+    radial-gradient(circle var(--hole), #0000 96%, #000) calc(var(--step) / -2) calc(var(--step) / -2) / var(--step) var(--step);
+  mask: linear-gradient(#000 0 0) center / calc(100% - 2 * var(--hole)) calc(100% - 2 * var(--hole)) no-repeat,
+    radial-gradient(circle var(--hole), #0000 96%, #000) calc(var(--step) / -2) calc(var(--step) / -2) / var(--step) var(--step);
+  position: absolute;
+  inset: 0;
+  box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1);
+}
+
+.pc-stamp-block {
+  inset: calc(var(--u) * 2.1) calc(var(--u) * 2.1) calc(var(--u) * 2.1) calc(var(--u) * 11);
+  color: #fff;
+  background: color-mix(in srgb, var(--accent, #2c4288) 74%, #fff);
+  justify-content: center;
+  align-items: center;
+  display: flex;
+  position: absolute;
+}
+
+.pc-stamp-big {
+  align-items: center;
+  gap: calc(var(--u) * 0.7);
+  font-family: Instrument Serif, Georgia, serif;
+  font-size: calc(var(--u) * 2.8);
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  white-space: nowrap;
+  line-height: 1;
+  display: inline-flex;
+}
+
+.pc-stamp-big svg {
+  width: calc(var(--u) * 2.4);
+  height: calc(var(--u) * 2.4);
+  flex: none;
+}
+
+.pc-stamp-time {
+  left: calc(var(--u) * 2.1);
+  top: calc(var(--u) * 2.1);
+  bottom: calc(var(--u) * 2.1);
+  width: calc(var(--u) * 7.4);
+  box-sizing: border-box;
+  justify-content: center;
+  align-items: center;
+  gap: calc(var(--u) * 0.5);
+  padding-top: calc(var(--u) * 0.5);
+  border: calc(var(--u) * 0.16) solid #2a2f38;
+  color: #2a2f38;
+  flex-direction: column;
+  font-family: Inter, system-ui, sans-serif;
+  display: flex;
+  position: absolute;
+}
+
+.pc-stamp-time b {
+  font-family: Instrument Serif, Georgia, serif;
+  font-size: calc(var(--u) * 3.6);
+  -webkit-text-stroke: calc(var(--u) * 0.14) currentColor;
+  font-weight: 400;
+  line-height: 1;
+}
+
+.pc-stamp-time small {
+  font-size: calc(var(--u) * 1.3);
+  letter-spacing: 0.04em;
+  font-weight: 600;
+  line-height: 1;
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  .pc-stamp {
+    transition: filter 0.2s ease-out;
+  }
+  .pc-stamp-lift {
+    transition: transform 0.2s ease-out;
+  }
+  .pc-stamp:active .pc-stamp-lift {
+    transition-duration: 90ms;
+  }
+}
+
+@media (hover: hover) {
+  .pc-stamp:hover,
+  .pc-stamp:focus-visible {
+    filter: drop-shadow(0 calc(var(--u) * 0.4) calc(var(--u) * 0.7) rgba(45, 35, 25, 0.2));
+  }
+  .pc-stamp:hover .pc-stamp-lift,
+  .pc-stamp:focus-visible .pc-stamp-lift {
+    transform: translateY(calc(var(--u) * -0.25)) scale(1.012);
+  }
+}
+
+.pc-stamp:active .pc-stamp-lift {
+  transform: scale(0.98);
+}
+
+.pc-stamp:focus-visible {
+  outline-offset: 0.5cqw;
+  outline: 0.25cqw solid #2a2620;
+}
+
+/* Postcard Responsive Media Queries (Reference Match <= 600px) */
+@media (width <= 600px) {
+  .project-postcards {
+    gap: 72px;
+    width: calc(100% - 32px);
+  }
+  .pc {
+    aspect-ratio: 300 / 470;
+  }
+  .pc-paper {
+    grid-template-rows: minmax(0, 1fr) auto;
+    grid-template-columns: minmax(0, 1fr);
+  }
+  .pc-left {
+    padding: 7cqw 8cqw 4cqw;
+  }
+  .pc-title {
+    font-size: 8.4cqw;
+  }
+  .pc-about {
+    max-width: none;
+    margin-top: 3cqw;
+    font-size: 4.1cqw;
+  }
+  .pc-field {
+    margin-top: 2.6cqw;
+    padding-bottom: 1.2cqw;
+    font-size: 2.8cqw;
+  }
+  .pc-title + .pc-about + .pc-field {
+    margin-top: 4cqw;
+  }
+  .pc-field em {
+    font-size: 4.2cqw;
+  }
+  .pc-marks {
+    display: none;
+  }
+  .pc-frame {
+    aspect-ratio: 1;
+    align-self: end;
+    margin: 0 8cqw 7cqw;
+    padding: 2.4cqw 2.4cqw 8cqw;
+  }
+  .pc-shot {
+    border-radius: 2cqw 0 0;
+    top: 8cqw;
+    left: 6cqw;
+    inset: 8cqw 0 0 6cqw;
+  }
+  .pc-sticker {
+    width: 17.5cqw;
+    margin: -8.75cqw 0 0 -8.75cqw;
+    top: 62.7cqw;
+  }
+  .pc-kraft {
+    grid-template-rows: auto minmax(0, 1fr);
+    grid-template-columns: minmax(0, 1fr);
+    align-content: stretch;
+    gap: 9cqw;
+    padding: 6.5cqw 8cqw;
+  }
+  .pc-back .pc-title {
+    font-size: 7.2cqw;
+  }
+  .pc-stats {
+    margin-top: 3cqw;
+  }
+  .pc-stats div {
+    margin-bottom: 2.2cqw;
+    padding-bottom: 2.2cqw;
+  }
+  .pc-stats dd {
+    font-size: 10cqw;
+  }
+  .pc-stats dt {
+    font-size: 3.9cqw;
+  }
+  .pc-story {
+    margin-top: 2.4cqw;
+    font-size: 3.9cqw;
+    line-height: 1.5;
+  }
+  .pc-facts {
+    display: none;
+  }
+  .pc-back-story {
+    flex-direction: column;
+    min-height: 0;
+    display: flex;
+  }
+  .pc-stamp {
+    --u: 1.86cqw;
+    align-self: center;
+    margin-top: auto;
+    margin-bottom: 20px;
+  }
+}
+
+/* =========================================================================
+   TICKET CARDS (.tk) - BOARDING PASS ARCHITECTURE (REFERENCE RECREATION)
+   ========================================================================= */
+.independent-projects {
+  width: min(var(--sky-home-content-width, 692px), calc(100% - 48px));
+  margin: 150px auto 0;
+  scroll-margin-top: 40px;
+}
+
+.independent-intro h2 {
+  letter-spacing: -0.035em;
+  font-size: 32px;
+  font-weight: 500;
+  line-height: 1.2;
+  color: var(--sky-ink);
+}
+
+.project-tickets {
+  gap: 40px;
+  width: 100%;
+  margin: 0;
+  padding: 40px 0;
+  display: grid;
+}
+
+.tk {
+  --mx: 50;
+  --my: 40;
+  --rx: 0deg;
+  --ry: 0deg;
+  --stub: 76%;
+  --notch: 1.7cqw;
+  aspect-ratio: 2.55;
+  perspective: 1800px;
+  color: #fff;
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+  width: 100%;
+  text-decoration: none;
+  display: block;
+  position: relative;
+  container-type: inline-size;
+}
+
+.tk-tilt {
+  transform: rotateX(var(--rx)) rotateY(var(--ry));
+  transition: transform 0.4s cubic-bezier(0.2, 0.7, 0.2, 1);
+  position: absolute;
+  inset: 0;
+}
+
+.tk:hover .tk-tilt {
+  transition-duration: 0.12s;
+}
+
+.tk-body {
+  background: radial-gradient(circle at calc(var(--mx) * 1%) calc(var(--my) * 1%), rgba(255, 255, 255, 0.16), transparent 52%),
+    linear-gradient(135deg, var(--tone-a), var(--tone-b));
+  -webkit-mask: radial-gradient(circle var(--notch) at var(--stub) 0, #0000 98%, #000),
+    radial-gradient(circle var(--notch) at var(--stub) 100%, #0000 98%, #000),
+    radial-gradient(circle 0.3cqw at var(--stub) 50%, #0000 98%, #000) 0 0 / 100% 1.7cqw repeat-y;
+  mask: radial-gradient(circle var(--notch) at var(--stub) 0, #0000 98%, #000),
+    radial-gradient(circle var(--notch) at var(--stub) 100%, #0000 98%, #000),
+    radial-gradient(circle 0.3cqw at var(--stub) 50%, #0000 98%, #000) 0 0 / 100% 1.7cqw repeat-y;
+  -webkit-mask-composite: source-in, source-in;
+  mask-composite: intersect, intersect;
+  border-radius: 1.6cqw;
+  position: absolute;
+  inset: 0;
+  overflow: hidden;
+  box-shadow: 0 16px 36px -6px rgba(0, 0, 0, 0.2);
+}
+
+.tk-grain {
+  pointer-events: none;
+  mix-blend-mode: overlay;
+  opacity: 0.5;
+  background: url(/postcard/noise.svg) 0 0 / 18cqw 18cqw;
+  position: absolute;
+  inset: 0;
+}
+
+.tk-photo {
+  background: rgba(0, 0, 0, 0.2);
+  border-radius: 1cqw;
+  width: 38cqw;
+  position: absolute;
+  top: 3cqw;
+  bottom: 3cqw;
+  left: 3cqw;
+  overflow: hidden;
+}
+
+.tk-photo img {
+  object-fit: cover;
+  width: 100%;
+  height: 100%;
+  display: block;
+  filter: contrast(0.97) saturate(0.97);
+}
+
+.tk-photo::after {
+  content: "";
+  pointer-events: none;
+  mix-blend-mode: soft-light;
+  opacity: 0.55;
+  background: url(/postcard/noise.svg) 0 0 / 14cqw 14cqw;
+  position: absolute;
+  inset: 0;
+}
+
+.tk-text {
+  flex-direction: column;
+  gap: 1.7cqw;
+  width: 29cqw;
+  display: flex;
+  position: absolute;
+  top: 5.4cqw;
+  left: 45cqw;
+}
+
+.tk-name {
+  letter-spacing: -0.01em;
+  text-wrap: balance;
+  font-family: Instrument Serif, Georgia, serif;
+  font-size: 5.8cqw;
+  line-height: 0.95;
+  color: #fff;
+}
+
+.tk-premise {
+  color: #fffffff0;
+  text-wrap: pretty;
+  font-size: 1.85cqw;
+  line-height: 1.5;
+}
+
+.tk-formula {
+  color: #fffffff0;
+  font-size: 1.85cqw;
+  line-height: 1.5;
+}
+
+.tk-shine {
+  z-index: 1;
+  pointer-events: none;
+  background: radial-gradient(circle at calc(var(--mx) * 1%) calc(var(--my) * 1%), rgba(255, 255, 255, 0.26), transparent 42%),
+    linear-gradient(115deg, transparent calc(var(--mx) * 0.9% - 16%), rgba(255, 255, 255, 0.14) calc(var(--mx) * 0.9%), transparent calc(var(--mx) * 0.9% + 16%));
+  mix-blend-mode: soft-light;
+  position: absolute;
+  inset: 0;
+}
+
+.tk-go {
+  z-index: 2;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  height: 5.8cqw;
+  font-size: 1.3cqw;
+  font-weight: 600;
+  line-height: 1;
+  display: inline-flex;
+  position: absolute;
+  bottom: 3cqw;
+  left: 45cqw;
+}
+
+.tk-go-a,
+.tk-go-b {
+  --shine: linear-gradient(100deg, transparent calc(var(--mx) * 1% - 22%), rgb(255 255 255 / var(--glint, 0.32)) calc(var(--mx) * 1%), transparent calc(var(--mx) * 1% + 22%));
+  color: inherit;
+  align-items: center;
+  text-decoration: none;
+  transition: background 0.18s, color 0.18s;
+  display: inline-flex;
+  cursor: pointer;
+}
+
+.tk-go a:focus-visible,
+.tk-go button:focus-visible {
+  outline-offset: 0.4cqw;
+  outline: 0.3cqw solid #fff;
+}
+
+.tk-go-a {
+  color: #ffffffab;
+  background: #ffffff21;
+  border-radius: 1cqw 0 0 1cqw;
+  padding: 0 1.9cqw 0 2.3cqw;
+  -webkit-mask-image: radial-gradient(0.62cqw at 100% 0, #0000 98%, #000), radial-gradient(0.62cqw at 100% 100%, #0000 98%, #000);
+  mask-image: radial-gradient(0.62cqw at 100% 0, #0000 98%, #000), radial-gradient(0.62cqw at 100% 100%, #0000 98%, #000);
+  -webkit-mask-composite: source-in;
+  mask-composite: intersect;
+}
+
+.tk-go-b {
+  --glint: 0.5;
+  background: var(--shine), #ffffffb8;
+  color: var(--tone-a);
+  border-radius: 0 1cqw 1cqw 0;
+  gap: 0.8cqw;
+  padding: 0 2.3cqw 0 1.9cqw;
+  -webkit-mask-image: radial-gradient(0.62cqw at 0 0, #0000 98%, #000), radial-gradient(0.62cqw at 0 100%, #0000 98%, #000);
+  mask-image: radial-gradient(0.62cqw at 0 0, #0000 98%, #000), radial-gradient(0.62cqw at 0 100%, #0000 98%, #000);
+  -webkit-mask-composite: source-in;
+  mask-composite: intersect;
+}
+
+.tk-go-b svg {
+  width: 1.8cqw;
+  height: 1.8cqw;
+}
+
+@media (hover: hover) {
+  .tk-go-a:hover {
+    color: #fff;
+    background: #ffffff42;
+  }
+  .tk-go-b:hover {
+    background: var(--shine), #fffffff0;
+  }
+}
+
+.tk-go-a:active {
+  color: #fff;
+  background: #ffffff33;
+}
+
+.tk-go-b:active {
+  background: var(--shine), #ffffffd1;
+}
+
+.tk-stub {
+  left: var(--stub);
+  flex-direction: column;
+  align-items: center;
+  gap: 2.2cqw;
+  padding: 3.4cqw 2.6cqw 3cqw;
+  display: flex;
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  right: 0;
+}
+
+.tk-qr {
+  aspect-ratio: 1;
+  flex: none;
+  width: 100%;
+  max-width: 15.5cqw;
+  margin-top: 0.4cqw;
+  display: block;
+}
+
+.tk-info {
+  flex-direction: column;
+  flex: 1;
+  justify-content: flex-end;
+  gap: 1.2cqw;
+  width: 100%;
+  min-height: 0;
+  display: flex;
+}
+
+.tk-label {
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  text-align: center;
+  color: #ffffffe0;
+  gap: 0.3cqw;
+  font-size: 1.15cqw;
+  font-weight: 500;
+  line-height: 1.4;
+  display: grid;
+}
+
+.tk-bars {
+  color: #fff;
+  opacity: 0.92;
+  width: 100%;
+  height: 7.4cqw;
+  display: block;
+}
+
+/* Responsive Ticket Layout <= 600px */
+@media (width <= 600px) {
+  .independent-projects {
+    margin-top: 100px;
+    width: calc(100% - 32px);
+  }
+
+  .project-tickets {
+    gap: 28px;
+    padding-top: 24px;
+    padding-bottom: 16px;
+  }
+
+  .tk {
+    aspect-ratio: auto;
+  }
+
+  .tk-tilt {
+    position: relative;
+  }
+
+  .tk-body {
+    --notch: 3.6cqw;
+    -webkit-mask: radial-gradient(circle var(--notch) at 0 calc(100% - 25cqw), #0000 98%, #000),
+      radial-gradient(circle var(--notch) at 100% calc(100% - 25cqw), #0000 98%, #000),
+      radial-gradient(circle 0.55cqw at 50% calc(100% - 25cqw), #0000 98%, #000) 0 0 / 3cqw 100% repeat-x;
+    mask: radial-gradient(circle var(--notch) at 0 calc(100% - 25cqw), #0000 98%, #000),
+      radial-gradient(circle var(--notch) at 100% calc(100% - 25cqw), #0000 98%, #000),
+      radial-gradient(circle 0.55cqw at 50% calc(100% - 25cqw), #0000 98%, #000) 0 0 / 3cqw 100% repeat-x;
+    -webkit-mask-composite: source-in, source-in;
+    mask-composite: intersect, intersect;
+    border-radius: 3cqw;
+    grid-template-columns: minmax(0, 1fr);
+    grid-template-areas:
+      "photo"
+      "text"
+      "stub";
+    row-gap: 3.4cqw;
+    padding: 6cqw 6cqw 0;
+    display: grid;
+    position: relative;
+  }
+
+  .tk-photo,
+  .tk-text,
+  .tk-stub {
+    position: static;
+  }
+
+  .tk-photo {
+    aspect-ratio: 4 / 3;
+    border-radius: 2cqw;
+    grid-area: photo;
+    width: 100%;
+    height: auto;
+  }
+
+  .tk-text {
+    grid-area: text;
+    gap: 3cqw;
+    width: auto;
+    margin: 3.5cqw 0 5cqw;
+  }
+
+  .tk-name {
+    font-size: 11cqw;
+  }
+
+  .tk-premise,
+  .tk-formula {
+    font-size: 4.2cqw;
+  }
+
+  .tk-go {
+    z-index: 2;
+    grid-area: stub;
+    place-self: center stretch;
+    height: 12.5cqw;
+    margin: 0 0 0 24cqw;
+    font-size: 3cqw;
+    display: flex;
+    position: relative;
+    bottom: auto;
+    left: auto;
+  }
+
+  .tk-go-a,
+  .tk-go-b {
+    flex: 1 1 0;
+    justify-content: center;
+  }
+
+  .tk-go-a {
+    border-radius: 2cqw 0 0 2cqw;
+    padding: 0 2.4cqw;
+    -webkit-mask-image: radial-gradient(1.2cqw at 100% 0, #0000 98%, #000), radial-gradient(1.2cqw at 100% 100%, #0000 98%, #000);
+    mask-image: radial-gradient(1.2cqw at 100% 0, #0000 98%, #000), radial-gradient(1.2cqw at 100% 100%, #0000 98%, #000);
+    -webkit-mask-composite: source-in;
+    mask-composite: intersect;
+  }
+
+  .tk-go-b {
+    border-radius: 0 2cqw 2cqw 0;
+    gap: 1.6cqw;
+    padding: 0 2.4cqw;
+    -webkit-mask-image: radial-gradient(1.2cqw at 0 0, #0000 98%, #000), radial-gradient(1.2cqw at 0 100%, #0000 98%, #000);
+    mask-image: radial-gradient(1.2cqw at 0 0, #0000 98%, #000), radial-gradient(1.2cqw at 0 100%, #0000 98%, #000);
+    -webkit-mask-composite: source-in;
+    mask-composite: intersect;
+  }
+
+  .tk-go-b svg {
+    width: 3.6cqw;
+    height: 3.6cqw;
+  }
+
+  .tk-stub {
+    flex-direction: row;
+    grid-area: stub;
+    align-items: center;
+    gap: 5cqw;
+    height: 25cqw;
+    margin: 0 -6cqw;
+    padding: 3.4cqw 6cqw;
+  }
+
+  .tk-qr {
+    width: 18cqw;
+    max-width: none;
+    margin: 0;
+  }
+
+  .tk-info {
+    display: none;
+  }
+}
+
+/* =========================================================================
+   GOOEY LIQUID FILTER & CRUMPLED PAPER NOTE
+   ========================================================================= */
+.gooey-btn {
+  filter: url(#gooey-filter);
+}
+
+.sky-note {
+  background: #fbfbf7;
+  box-shadow: 0 20px 45px -10px rgba(0, 0, 0, 0.25), 0 8px 16px rgba(0, 0, 0, 0.1);
+  transform: rotate(-1.2deg);
+  transition: transform 0.3s ease;
+}
+
+.sky-note:hover {
+  transform: rotate(-0.5deg);
+}
+
+.sky-note-tape {
+  background: rgba(246, 237, 214, 0.85);
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.12);
+  border-left: 2px dashed rgba(200, 185, 150, 0.4);
+  border-right: 2px dashed rgba(200, 185, 150, 0.4);
+}
+
+/* =========================================================================
+   SKY DOOR ("Sky's the limit" Centered Transition Block)
+   ========================================================================= */
+.sky-door {
+  width: min(740px, 100% - 48px);
+  margin: 120px auto 0;
+  text-align: center;
+  justify-items: center;
+  gap: 16px;
+  padding-top: 24px;
+  display: grid;
+}
+
+.sky-door h2 {
+  letter-spacing: -0.04em;
+  font-size: clamp(2.2rem, 4.6vw, 3rem);
+  line-height: 1.08;
+  font-weight: 500;
+  text-wrap: balance;
+  margin: 0;
+  color: var(--sky-ink);
+}
+
+.sky-door p {
+  max-width: 46ch;
+  color: var(--sky-secondary);
+  opacity: 0.86;
+  font-size: 16px;
+  text-wrap: balance;
+  margin: 0;
+  line-height: 1.6;
+}
+
+.sd-wrap {
+  margin-top: 16px;
+  display: inline-flex;
+  position: relative;
+  align-items: center;
+  justify-content: center;
+}
+
+@property --sd-angle {
+  syntax: "<angle>";
+  inherits: false;
+  initial-value: 0deg;
+}
+
+@keyframes sd-orbit {
+  to {
+    --sd-angle: 360deg;
+  }
+}
+
+.sd-glow {
+  z-index: 0;
+  pointer-events: none;
+  background: conic-gradient(
+    from var(--sd-angle, 0deg),
+    #fff0 0deg,
+    #fff0 200deg,
+    #ffffff0f 190deg,
+    #ffffff38 230deg,
+    #ffffff80 270deg,
+    #ffffffc7 305deg,
+    #ffffff80 335deg,
+    #ffffff26 352deg,
+    #fff0 360deg
+  );
+  filter: blur(6px);
+  border-radius: 999px;
+  animation: 5s linear infinite sd-orbit;
+  position: absolute;
+  inset: -3px;
+  box-shadow: 0 0 10px #ffffff1f;
+}
+
+.sky-door-btn {
+  isolation: isolate;
+}
+
+.sky-door .sky-door-btn.sky-pill {
+  color: #162332;
+  box-shadow: none;
+  background: #ffffff;
+  overflow: hidden;
+  min-height: 48px;
+  padding: 0 24px;
+  font-size: 1rem;
+  font-weight: 500;
+  border-radius: 999px;
+  text-decoration: none;
+  cursor: pointer;
+  z-index: 1;
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  gap: 12px;
+  border: none;
+  transition: scale 0.15s ease-out, box-shadow 0.2s ease;
+}
+
+.sky-door .sky-door-btn.sky-pill:hover {
+  scale: 1.025;
+  box-shadow: 0 8px 24px rgba(22, 35, 50, 0.14);
+}
+
+.sky-door .sky-door-btn.sky-pill:active {
+  scale: 0.96;
+}
+
+.sky-door .sky-door-btn.sky-pill::after {
+  display: none;
+}
+
+.sd-label {
+  z-index: 2;
+  align-items: center;
+  gap: 10px;
+  display: inline-flex;
+  position: relative;
+}
+
+.sky-door-btn:hover .sky-swap-a,
+.sky-door-btn:focus-visible .sky-swap-a {
+  opacity: 0;
+  filter: blur(2px);
+  transform: translateX(22px);
+}
+
+.sky-door-btn:hover .sky-swap-b,
+.sky-door-btn:focus-visible .sky-swap-b {
+  opacity: 1;
+  filter: blur(0px);
+  transform: translateX(0);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .sd-glow {
+    --sd-angle: 250deg;
+    animation: none;
+  }
+}
+
+/* =========================================================================
+   SKY EXPERIENCE & TIMELINE (Minimalist Reference Timeline)
+   ========================================================================= */
+.sky-experience {
+  max-width: 700px;
+  margin: 120px auto 0;
+  padding: 0 24px;
+  width: 100%;
+}
+
+.sky-experience > h2 {
+  margin-bottom: 32px;
+  font-size: 24px;
+  font-weight: 500;
+  color: var(--sky-ink);
+  letter-spacing: -0.01em;
+}
+
+.sky-timeline {
+  --timeline-line: #ffffff8c;
+  --timeline-axis: 28px;
+  position: relative;
+}
+
+[data-theme="night"] .sky-timeline {
+  --timeline-line: rgba(255, 255, 255, 0.22);
+}
+
+.sky-timeline-axis {
+  pointer-events: none;
+  height: 18px;
+  position: absolute;
+  inset: 0 0 auto;
+}
+
+.sky-timeline-axis > span {
+  top: 0;
+  left: calc(var(--p) * 100%);
+  border-left: 1px solid color-mix(in srgb, var(--sky-ink) 16%, transparent);
+  color: var(--sky-secondary);
+  padding-left: 6px;
+  font-size: 12px;
+  line-height: 14px;
+  position: absolute;
+  font-variant-numeric: tabular-nums;
+}
+
+.sky-timeline-list {
+  padding: var(--timeline-axis) 0 0;
+  margin: 0;
+  list-style: none;
+}
+
+.sky-timeline-item {
+  padding-block: 22px 24px;
+  display: grid;
+}
+
+.sky-timeline-head {
+  flex-wrap: wrap;
+  justify-content: space-between;
+  align-items: baseline;
+  gap: 8px 16px;
+  display: flex;
+}
+
+.sky-timeline-head h3 {
+  font-size: 18px;
+  font-weight: 500;
+  line-height: 24px;
+  color: var(--sky-ink);
+  margin: 0;
+}
+
+.sky-timeline-toggle {
+  font: inherit;
+  letter-spacing: inherit;
+  color: inherit;
+  text-align: inherit;
+  cursor: default;
+  background: transparent;
+  border: 0;
+  margin: 0;
+  padding: 0;
+}
+
+.sky-timeline-dates {
+  color: var(--sky-secondary);
+  font-size: 14px;
+}
+
+.sky-timeline-role {
+  margin-top: 2px;
+  font-size: 16px;
+  line-height: 1.5;
+  color: var(--sky-ink);
+}
+
+.sky-timeline-detail {
+  color: var(--sky-secondary);
+  margin-top: 4px;
+  font-size: 15px;
+  line-height: 1.55;
+}
+
+.sky-timeline-track {
+  background: repeating-linear-gradient(to right, var(--timeline-line) 0 1px, transparent 1px calc(100% / 7));
+  height: 10px;
+  margin-top: 16px;
+  position: relative;
+}
+
+.sky-timeline-track:before {
+  content: "";
+  background: var(--timeline-line);
+  position: absolute;
+  inset: 4px 0;
+}
+
+.sky-timeline-bar {
+  transform-origin: 0;
+  background: #ffffff;
+  border-radius: 4px;
+  min-width: 6px;
+  height: 8px;
+  position: absolute;
+  top: 1px;
+}
+
+.sky-timeline-bar[data-present] {
+  box-shadow: 0 0 0 4px #ffffff61;
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  @supports (animation-timeline: view()) {
+    .sky-timeline-bar {
+      animation: linear both sky-timeline-grow;
+      animation-timeline: view();
+      animation-range: entry 10% entry 90%;
+    }
+    @keyframes sky-timeline-grow {
+      0% {
+        transform: scaleX(0);
+      }
+      to {
+        transform: scaleX(1);
+      }
+    }
+  }
+}
+
+/* Mobile reflow for timeline */
+@media (width <= 600px) {
+  .sky-timeline-item {
+    cursor: pointer;
+    -webkit-tap-highlight-color: transparent;
+    grid-template-columns: minmax(0, 1fr) auto;
+    grid-template-areas:
+      "name dates"
+      "role dates"
+      "detail detail"
+      "track track";
+    column-gap: 16px;
+  }
+  .sky-timeline-toggle {
+    cursor: pointer;
+  }
+  .sky-timeline-head {
+    display: contents;
+  }
+  .sky-timeline-head h3 {
+    grid-area: name;
+  }
+  .sky-timeline-dates {
+    white-space: nowrap;
+    grid-area: dates;
+    align-self: center;
+  }
+  .sky-timeline-role {
+    grid-area: role;
+  }
+  .sky-timeline-detail {
+    grid-area: detail;
+  }
+  .sky-timeline-track {
+    grid-area: track;
+  }
+  .sky-timeline-detail {
+    opacity: 0;
+    max-height: 0;
+    margin-top: 0;
+    transition: max-height 0.28s, opacity 0.22s, margin-top 0.22s;
+    overflow: hidden;
+  }
+  .sky-timeline-item[data-open] .sky-timeline-detail {
+    opacity: 1;
+    max-height: 8em;
+    margin-top: 4px;
+  }
+}
+
+/* =========================================================================
+   SKY HERO INTRO & EDITORIAL TYPOGRAPHY (MATCHING THOUFIK REFERENCE)
+   ========================================================================= */
+.sky-intro {
+  max-width: 740px;
+  margin: 0 auto;
+  padding: 128px 24px 80px;
+  color: var(--sky-ink, #f6f8fd);
+  position: relative;
+}
+
+@media (max-width: 700px) {
+  .sky-intro {
+    padding: 80px 20px 48px;
+  }
+}
+
+.sky-intro h1 {
+  letter-spacing: -0.045em;
+  font-size: clamp(34px, 4.4vw, 44px);
+  font-weight: 500;
+  line-height: 1.15;
+  color: var(--sky-ink, #f6f8fd);
+}
+
+.sky-hero-logo {
+  width: 48px;
+  height: 48px;
+  margin-bottom: 24px;
+  color: var(--sky-ink, #f6f8fd);
+  touch-action: none;
+  cursor: grab;
+  display: block;
+  position: relative;
+}
+
+.sky-hero-logo:active {
+  cursor: grabbing;
+}
+
+.sky-hero-logo:focus-visible {
+  outline: 2px solid var(--sky-ink, #f6f8fd);
+  outline-offset: 5px;
+  border-radius: 8px;
+}
+
+.sky-hero-logo:after {
+  content: "";
+  z-index: 2;
+  pointer-events: none;
+  opacity: 0;
+  filter: drop-shadow(0 0 5px #ffffff);
+  background: radial-gradient(circle, #ffffff 0 1px, rgba(255, 255, 255, 0.85) 2px, transparent 5px),
+              linear-gradient(90deg, transparent 45%, rgba(255, 255, 255, 0.9) 50%, transparent 55%),
+              linear-gradient(transparent 45%, rgba(255, 255, 255, 0.9) 50%, transparent 55%);
+  width: 19px;
+  height: 19px;
+  position: absolute;
+  top: 4px;
+  left: 31px;
+  transform: scale(0.2) rotate(35deg);
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  .sky-hero-logo[data-ready="true"]:after,
+  .sky-hero-logo:after {
+    animation: 11s ease-in-out infinite sky-logo-glint;
+  }
+}
+
+@keyframes sky-logo-glint {
+  0%, 17%, 23%, 100% {
+    opacity: 0;
+    transform: scale(0.2) rotate(35deg);
+  }
+  19.5% {
+    opacity: 0.95;
+    transform: scale(1) rotate(35deg);
+  }
+  21% {
+    opacity: 0.35;
+    transform: scale(0.65) rotate(35deg);
+  }
+}
+
+.sky-positioning {
+  margin-top: 16px;
+  font-size: 20px;
+  line-height: 1.5;
+  color: var(--sky-ink, #f6f8fd);
+  font-weight: 400;
+}
+
+@media (max-width: 700px) {
+  .sky-positioning {
+    font-size: 18px;
+  }
+}
+
+.sky-changing-phrase {
+  vertical-align: baseline;
+  text-align: left;
+  width: max-content;
+  min-width: 0;
+  color: inherit;
+  background: transparent;
+  border: 0;
+  padding: 0;
+  margin: 0;
+  display: inline-grid;
+  position: relative;
+  cursor: pointer;
+  outline: none;
+}
+
+.sky-phrase-artwork {
+  white-space: nowrap;
+  --sky-phrase-from: color-mix(in oklab, #c6a3f2, #8b5cf6 calc(var(--theme-blend, 0) * 100%));
+  --sky-phrase-middle: color-mix(in oklab, #f3deef, #d946ef calc(var(--theme-blend, 0) * 100%));
+  --sky-phrase-to: color-mix(in oklab, #f2b6dd, #ec4899 calc(var(--theme-blend, 0) * 100%));
+  display: inline-block;
+}
+
+:root:not(.dark) .sky-phrase-artwork,
+[data-theme="day"] .sky-phrase-artwork {
+  --sky-phrase-from: #8b5cf6;
+  --sky-phrase-middle: #d946ef;
+  --sky-phrase-to: #ec4899;
+}
+
+.dark .sky-phrase-artwork,
+[data-theme="night"] .sky-phrase-artwork {
+  --sky-phrase-from: #c6a3f2;
+  --sky-phrase-middle: #f3deef;
+  --sky-phrase-to: #f2b6dd;
+}
+
+.sky-phrase-icon {
+  color: var(--sky-phrase-to, #f2b6dd);
+  margin-inline-start: 7px;
+  display: inline-block;
+}
+
+.sky-phrase-icon > svg {
+  vertical-align: -0.15em;
+  display: inline-block;
+}
+
+.sky-phrase-letter {
+  white-space: pre;
+  color: var(--sky-letter-ink, var(--sky-phrase-to, #f2b6dd));
+  display: inline-block;
+}
+
+/* =========================================================================
+   SKY INLINE NOTE & AI REVEAL ANIMATION (AUTHENTIC THOUFIK SPEC)
+   ========================================================================= */
+.sky-inline-note {
+  display: inline;
+  position: relative;
+}
+
+.sky-inline-note button,
+.sky-inline-brand,
+.sky-inline-link {
+  background: var(--sky-tag-glass, rgba(255, 255, 255, 0.16));
+  font-size: inherit;
+  line-height: inherit;
+  vertical-align: baseline;
+  border-radius: 8px;
+  padding: 1px 7px 1px 26px;
+  display: inline-block;
+  position: relative;
+  border: 1px solid rgba(255, 255, 255, 0.22);
+  backdrop-filter: blur(14px) saturate(1.2);
+  -webkit-backdrop-filter: blur(14px) saturate(1.2);
+  color: var(--sky-ink, inherit);
+  transition: background-color 0.2s ease, border-color 0.2s ease, transform 0.2s ease;
+  text-decoration: none;
+  white-space: nowrap;
+}
+
+.sky-inline-note button:hover,
+.sky-inline-brand:hover {
+  background: rgba(255, 255, 255, 0.25);
+  border-color: rgba(255, 255, 255, 0.38);
+  transform: translateY(-1px);
+}
+
+.sky-tech-badge {
+  cursor: default;
+  margin-left: 2px;
+  margin-right: 0px;
+  --sky-react-ink: color-mix(in oklab, #61dafb, #0284c7 calc(var(--theme-blend, 0) * 100%));
+}
+
+:root:not(.dark) .sky-tech-badge,
+[data-theme="day"] .sky-tech-badge {
+  --sky-react-ink: #0284c7;
+}
+
+.dark .sky-tech-badge,
+[data-theme="night"] .sky-tech-badge {
+  --sky-react-ink: #61dafb;
+}
+
+.sky-inline-note button > svg,
+.sky-inline-note button > .sky-ai-brand,
+.sky-inline-brand > .sky-project-mark,
+.sky-inline-link > svg {
+  position: absolute;
+  top: 50%;
+  left: 6px;
+  transform: translateY(-50%);
+}
+
+.sky-project-mark {
+  width: 15px;
+  height: 15px;
+  border-radius: 50%;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.sky-ai-brand {
+  width: 16px;
+  height: 16px;
+  display: block;
+}
+
+.sky-ai-brand[data-tool="chatgpt"] {
+  color: color-mix(in oklab, #ffffff, #009b7e calc(var(--theme-blend, 0) * 100%));
+}
+
+.sky-ai-brand[data-tool="claude"] {
+  color: color-mix(in oklab, #ffffff, #df7048 calc(var(--theme-blend, 0) * 100%));
+}
+
+.sky-ai-brand[data-tool="gemini"] {
+  color: color-mix(in oklab, #ffffff, #386bd7 calc(var(--theme-blend, 0) * 100%));
+}
+
+.sky-ai-brand > span {
+  justify-content: center;
+  align-items: center;
+  width: 16px;
+  height: 16px;
+  display: flex;
+  position: absolute;
+  inset: 0;
+}
+
+.sky-ai-brand svg {
+  filter: none;
+  flex-shrink: 0;
+  width: 16px;
+  height: 16px;
+}
+
+.sky-ai-label {
+  white-space: nowrap;
+  text-align: left;
+  display: inline-block;
+  position: relative;
+}
+
+.sky-ai-shorthand {
+  align-items: baseline;
+  display: inline-flex;
+}
+
+.sky-ai-shorthand em {
+  position: relative;
+  font-style: normal;
+}
+
+.sky-ai-strike {
+  inset-inline: -1px;
+  transform-origin: 0;
+  background: currentColor;
+  height: 1.5px;
+  position: absolute;
+  top: 52%;
+  transition: transform 0.18s ease-out;
+}
+
+.sky-ai-reveal {
+  white-space: nowrap;
+  vertical-align: baseline;
+  display: inline-block;
+  position: relative;
+  overflow: hidden;
+}
+
+.sky-ai-measure {
+  visibility: hidden;
+  pointer-events: none;
+  width: max-content;
+  position: absolute;
+  inset: 0 auto auto 0;
+}
+
+.sky-ai-reveal-text {
+  width: max-content;
+  position: absolute;
+  inset: 0 auto auto 0;
+}
+
+/* =========================================================================
+   SKY STORY PARAGRAPHS & LINKS
+   ========================================================================= */
+.sky-story {
+  max-width: 620px;
+  margin-top: 48px;
+}
+
+.sky-story p {
+  font-size: 17px;
+  line-height: 1.7;
+  color: var(--sky-ink, #f6f8fd);
+}
+
+.sky-story p + p {
+  margin-top: 24px;
+}
+
+.sky-story-links {
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 24px;
+  margin-top: 40px;
+  display: flex;
+}
+
+@media (max-width: 700px) {
+  .sky-story {
+    margin-top: 32px;
+  }
+  .sky-story p {
+    font-size: 16px;
+  }
+  .sky-story-links {
+    gap: 20px;
+    margin-top: 32px;
+  }
+}
+
+/* =========================================================================
+   SKY PILL & "LET'S TALK" TRANSLUCENT FROSTED GLASS CTA
+   ========================================================================= */
+.sky-pill {
+  min-height: 48px;
+  font-size: 15px;
+  font-weight: 500;
+  cursor: pointer;
+  border-radius: 999px;
+  justify-content: center;
+  align-items: center;
+  gap: 12px;
+  padding: 0 24px;
+  display: inline-flex;
+  position: relative;
+  transition: transform 0.15s ease-out, box-shadow 0.2s ease, background-color 0.2s ease;
+  text-decoration: none;
+}
+
+.sky-pill:hover {
+  transform: scale(1.025);
+}
+
+.sky-pill:active {
+  transform: scale(0.96);
+}
+
+.sky-talk-btn {
+  background: rgba(255, 255, 255, 0.22);
+  color: #121c2b;
+  -webkit-backdrop-filter: blur(18px) saturate(1.2);
+  backdrop-filter: blur(18px) saturate(1.2);
+  border: 1px solid rgba(255, 255, 255, 0.42);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.55), inset 0 -1px 0 rgba(255, 255, 255, 0.12), 0 8px 24px rgba(22, 35, 50, 0.08);
+  background-image: linear-gradient(135deg, rgba(255, 255, 255, 0.32), rgba(185, 219, 255, 0.14) 36%, transparent 62%, rgba(255, 255, 255, 0.08));
+  overflow: hidden;
+}
+
+.dark .sky-talk-btn,
+[data-theme="night"] .sky-talk-btn {
+  background: rgba(255, 255, 255, 0.12);
+  color: #f1f5f9;
+  border-color: rgba(255, 255, 255, 0.25);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.35), inset 0 -1px 0 rgba(255, 255, 255, 0.08), 0 8px 24px rgba(0, 0, 0, 0.3);
+}
+
+.sky-talk-btn:after {
+  content: "";
+  pointer-events: none;
+  background: linear-gradient(110deg, transparent 35%, rgba(255, 255, 255, 0.38) 50%, transparent 65%);
+  position: absolute;
+  inset: -30%;
+  transform: translate(-130%);
+}
+
+.sky-talk-btn:hover:after {
+  animation: 0.6s ease-out sky-button-sheen;
+}
+
+@keyframes sky-button-sheen {
+  to {
+    transform: translate(130%);
+  }
+}
+
+.sky-swap {
+  place-items: center;
+  width: 18px;
+  height: 18px;
+  margin-left: -2px;
+  display: inline-grid;
+  overflow: hidden;
+  position: relative;
+}
+
+.sky-swap > span {
+  grid-area: 1/1;
+  justify-content: center;
+  align-items: center;
+  transition: transform 0.36s cubic-bezier(0.45, 0, 0.2, 1), opacity 0.36s, filter 0.36s;
+  display: flex;
+}
+
+.sky-swap-b {
+  opacity: 0;
+  filter: blur(2px);
+  transform: translateX(-22px);
+}
+
+.sky-talk-btn:hover .sky-swap-a,
+.sky-talk-btn:focus-visible .sky-swap-a {
+  opacity: 0;
+  filter: blur(2px);
+  transform: translateX(22px);
+}
+
+.sky-talk-btn:hover .sky-swap-b,
+.sky-talk-btn:focus-visible .sky-swap-b {
+  opacity: 1;
+  filter: blur(0px);
+  transform: translateX(0);
+}
+
+/* =========================================================================
+   MEADOW FOOTER, CONTACT BUTTON & PAPER NOTE (thoufik.space reference)
+   ========================================================================= */
+.meadow-footer {
+  isolation: isolate;
+  overflow-anchor: none;
+  color: var(--sky-ink, #0f1726);
+  padding-top: calc(var(--sky-section-gap, 100px) * 0.75);
+  background: transparent;
+  position: relative;
+  overflow: hidden;
+  width: 100%;
+}
+
+.meadow-footer:has(.meadow-paper-reveal) {
+  overflow: clip visible;
+}
+
+.meadow-contact-layout {
+  z-index: 2;
+  overflow-anchor: none;
+  grid-template-columns: minmax(0, 1fr);
+  align-items: center;
+  max-width: 740px;
+  min-height: 400px;
+  margin: 0 auto;
+  padding: 0 24px;
+  transition: max-width 0.35s cubic-bezier(0.2, 0, 0, 1);
+  display: grid;
+  position: relative;
+  width: 100%;
+}
+
+.meadow-contact-layout[data-contact-open="true"] {
+  max-width: 932px;
+}
+
+.meadow-contact-layout:has(.meadow-paper-reveal) {
+  margin-top: 120px;
+  padding-bottom: 96px;
+}
+
+@media (width <= 900px) {
+  .meadow-contact-layout {
+    grid-template-columns: minmax(0, 1fr);
+    align-items: start;
+    gap: 0;
+    max-width: 740px;
+    min-height: 0;
+    padding: 0 24px 56px;
+  }
+  .meadow-contact-layout[data-contact-open="true"] {
+    max-width: 740px;
+  }
+}
+
+.meadow-closing {
+  z-index: 2;
+  text-align: left;
+  max-width: 480px;
+  margin: 0;
+  padding: 0;
+  position: relative;
+}
+
+.meadow-closing h2 {
+  letter-spacing: var(--tracking-heading, -0.02em);
+  margin: 0;
+  font-size: clamp(28px, 4vw, 40px);
+  font-weight: 500;
+  line-height: 1.2;
+  display: grid;
+  color: var(--sky-ink, #0f1726);
+}
+
+.meadow-footer .meadow-closing > p {
+  max-width: 470px;
+  color: var(--sky-secondary, #334255);
+  margin: 24px 0 0;
+  font-size: 16px;
+  line-height: 1.7;
+  display: grid;
+  position: relative;
+  left: 4px;
+}
+
+.meadow-closing :is(h2, p) > span {
+  grid-area: 1/1;
+  transition: opacity 0.28s cubic-bezier(0.2, 0, 0, 1), transform 0.28s cubic-bezier(0.2, 0, 0, 1);
+}
+
+.meadow-closing .meadow-copy-after,
+.meadow-closing[data-message-sent="true"] .meadow-copy-before {
+  opacity: 0;
+  pointer-events: none;
+  transform: translateY(6px);
+}
+
+.meadow-closing[data-message-sent="true"] .meadow-copy-after {
+  opacity: 1;
+  pointer-events: auto;
+  transform: translateY(0);
+}
+
+/* Meadow Connect Container & Liquid Button */
+.meadow-connect {
+  --contact-width: 160px;
+  width: var(--contact-width);
+  max-width: 100%;
+  height: 48px;
+  margin: 32px 0 0;
+  transition: width 0.42s cubic-bezier(0.2, 0.8, 0.2, 1);
+  position: relative;
+  display: flex;
+  align-items: center;
+}
+
+.meadow-connect[data-open="true"] {
+  width: calc(var(--contact-width) + 178px);
+}
+
+.meadow-contact {
+  z-index: 2;
+  width: var(--contact-width);
+  white-space: nowrap;
+  height: 48px;
+  color: var(--sky-ink, #0f1726);
+  background: var(--sky-nav-glass);
+  backdrop-filter: var(--sky-glass-filter);
+  -webkit-backdrop-filter: var(--sky-glass-filter);
+  border-radius: 999px;
+  justify-content: center;
+  align-items: center;
+  gap: 10px;
+  padding: 0 20px;
+  font-size: 16px;
+  font-weight: 500;
+  display: inline-flex;
+  position: relative;
+  overflow: hidden;
+  cursor: pointer;
+  border: 1px solid rgba(255, 255, 255, 0.4);
+  box-shadow: inset 0 1px rgba(255, 255, 255, 0.35), inset 0 -1px rgba(255, 255, 255, 0.08), 0 8px 24px rgba(22, 35, 50, 0.08);
+  transition: width 0.42s cubic-bezier(0.2, 0.8, 0.2, 1), background-color 0.15s ease, box-shadow 0.15s ease;
+}
+
+.meadow-contact:hover {
+  background: rgba(255, 255, 255, 0.55);
+  box-shadow: inset 0 1px rgba(255, 255, 255, 0.45), inset 0 -1px rgba(255, 255, 255, 0.1), 0 10px 28px rgba(22, 35, 50, 0.12);
+}
+
+.meadow-contact-label,
+.meadow-contact-icons {
+  align-items: center;
+  display: inline-grid;
+}
+
+.meadow-contact-label {
+  position: relative;
+}
+
+.meadow-contact-label > span,
+.meadow-contact-icons > span {
+  grid-area: 1/1;
+}
+
+.meadow-contact-icons {
+  width: 18px;
+  height: 18px;
+}
+
+.meadow-contact-icons > span {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.meadow-contact-label > span {
+  transition: opacity 0.18s cubic-bezier(0.2, 0, 0, 1), transform 0.18s cubic-bezier(0.2, 0, 0, 1), filter 0.18s cubic-bezier(0.2, 0, 0, 1);
+}
+
+.meadow-label-connect {
+  opacity: 1;
+  filter: blur(0px);
+  transform: translateX(0);
+}
+
+.meadow-label-note {
+  opacity: 0;
+  filter: blur(3px);
+  transform: translateX(4px);
+  position: absolute;
+  pointer-events: none;
+}
+
+.meadow-contact[data-label-expanded="true"] .meadow-label-connect {
+  opacity: 0;
+  filter: blur(3px);
+  transform: translateX(-4px);
+  position: absolute;
+  pointer-events: none;
+}
+
+.meadow-contact[data-label-expanded="true"] .meadow-label-note {
+  opacity: 1;
+  filter: blur(0px);
+  transform: translateX(0);
+  position: static;
+  pointer-events: auto;
+}
+
+/* Meadow Socials (3 Buttons Next to Contact) */
+.meadow-socials {
+  z-index: 1;
+  left: calc(var(--contact-width) + 14px);
+  align-items: center;
+  gap: 10px;
+  display: flex;
+  position: absolute;
+  top: 0;
+  overflow: visible;
+}
+
+.meadow-socials a {
+  width: 48px;
+  height: 48px;
+  color: var(--sky-ink, #0f1726);
+  background: var(--sky-nav-glass);
+  backdrop-filter: var(--sky-glass-filter);
+  -webkit-backdrop-filter: var(--sky-glass-filter);
+  border: 1px solid rgba(255, 255, 255, 0.4);
+  border-radius: 50%;
+  place-items: center;
+  display: grid;
+  position: relative;
+  overflow: hidden;
+  box-shadow: inset 0 1px rgba(255, 255, 255, 0.35), inset 0 -1px rgba(255, 255, 255, 0.08), 0 8px 24px rgba(22, 35, 50, 0.08);
+  transition: transform 0.42s cubic-bezier(0.2, 0.8, 0.2, 1), opacity 0.25s ease-out, background-color 0.15s ease, scale 0.15s ease;
+}
+
+.meadow-socials a:hover {
+  background: rgba(255, 255, 255, 0.6);
+  transform: scale(1.05);
+}
+
+.meadow-socials a > svg {
+  opacity: 0;
+  transition: opacity 70ms ease-out;
+}
+
+.meadow-connect[data-open="true"] .meadow-socials a > svg {
+  opacity: 1;
+  transition: opacity 0.15s ease-out 0.1s;
+}
+
+/* Subtle light sweep reflection */
+.meadow-contact:after,
+.meadow-socials a:after {
+  content: "";
+  pointer-events: none;
+  opacity: 0;
+  background: linear-gradient(110deg, transparent 40%, rgba(255, 255, 255, 0.35) 50%, transparent 60%);
+  position: absolute;
+  inset: -30% -60%;
+  transform: translate(-65%);
+}
+
+@media (hover: hover) and (prefers-reduced-motion: no-preference) {
+  .meadow-contact:hover:after,
+  .meadow-socials a:hover:after {
+    animation: 0.55s ease-out meadow-contact-shine;
+  }
+}
+
+@keyframes meadow-contact-shine {
+  0% { opacity: 0; transform: translate(-65%); }
+  30% { opacity: 1; }
+  100% { opacity: 0; transform: translate(65%); }
+}
+
+/* Paper Note Reveal in Meadow */
+.meadow-paper-reveal {
+  transform-origin: 50% 30%;
+  align-items: center;
+  width: 304px;
+  height: 100%;
+  display: grid;
+  position: absolute;
+  top: 0;
+  right: 24px;
+  z-index: 10;
+}
+
+@media (width <= 900px) {
+  .meadow-paper-reveal {
+    justify-self: center;
+    width: 100%;
+    max-width: 304px;
+    height: auto;
+    margin-top: 48px;
+    position: relative;
+    top: auto;
+    right: auto;
+  }
+}
+
+/* Exact Reference Paper Note Styles */
+.sky-paper-contact {
+  --paper-ink: color-mix(in srgb, #183767, #081936 var(--paper-night-mix, 0%));
+  --paper-pencil: rgba(0, 0, 0, 0.7);
+  --paper-heading: color-mix(in srgb, #343c55, #081421 var(--paper-night-mix, 0%));
+  --paper-error: color-mix(in srgb, #8c2736, #57111d var(--paper-night-mix, 0%));
+  perspective: 1000px;
+  justify-self: end;
+  width: 100%;
+  max-width: 304px;
+  position: relative;
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  .sky-paper-contact[data-phase="writing"] {
+    animation: 7s ease-in-out infinite sky-note-float;
+  }
+}
+
+.sky-paper-contact:focus-within,
+.sky-paper-contact:hover {
+  animation-play-state: paused;
+}
+
+@keyframes sky-note-float {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-6px); }
+}
+
+.sky-contact-note {
+  color: #343c55;
+  background: color-mix(in srgb, #f5efdf, #abb3c2 var(--paper-night-mix, 0%));
+  isolation: isolate;
+  border-radius: 2px 4px 5px 2px;
+  padding: 22px 22px 19px;
+  font-family: Kalam, var(--font-kalam), Bradley Hand, cursive;
+  position: relative;
+  box-shadow: 0 16px 36px -6px rgba(22, 35, 50, 0.28), 0 6px 16px rgba(22, 35, 50, 0.12);
+  transform: rotate(-2deg);
+  transform-origin: 50%;
+  transition: transform 0.2s cubic-bezier(0.2, 0.8, 0.2, 1);
+}
+
+.sky-contact-note:before {
+  content: "";
+  z-index: -1;
+  opacity: 0.82;
+  pointer-events: none;
+  border-radius: inherit;
+  background: linear-gradient(rgba(24, 44, 82, var(--paper-night-tint, 0)), rgba(24, 44, 82, var(--paper-night-tint, 0))), #f5efdf url(/sky/contact-paper-texture.webp) center/cover;
+  filter: brightness(var(--paper-illumination, 1));
+  transition: filter 0.22s;
+  position: absolute;
+  inset: 0;
+}
+
+.sky-contact-note:after {
+  content: "";
+  pointer-events: none;
+  opacity: var(--paper-highlight, 1);
+  border-radius: inherit;
+  background: linear-gradient(112deg, rgba(255, 255, 255, 0.33) 0%, transparent 34%, rgba(119, 97, 67, 0.04) 55%, rgba(255, 255, 255, 0.2) 57%, transparent 72%);
+  transition: opacity 0.22s;
+  position: absolute;
+  inset: 0;
+}
+
+.sky-note-content {
+  z-index: 1;
+  position: relative;
+}
+
+.sky-note-close {
+  z-index: 4;
+  width: 36px;
+  height: 36px;
+  color: var(--paper-pencil);
+  border-radius: 50%;
+  place-items: center;
+  display: grid;
+  position: absolute;
+  top: -6px;
+  right: -6px;
+  cursor: pointer;
+  background: transparent;
+  border: none;
+  transition: color 0.15s ease, transform 0.15s ease;
+}
+
+.sky-note-close:hover {
+  color: var(--paper-heading);
+  transform: scale(1.1);
+}
+
+.sky-note-content h3 {
+  font: inherit;
+  color: var(--paper-heading);
+  margin: 0 0 16px;
+  font-size: 20px;
+  line-height: 26px;
+  font-weight: 700;
+}
+
+.sky-note-field {
+  margin-top: 12px;
+  padding-bottom: 6px;
+  position: relative;
+}
+
+.sky-note-field:after {
+  content: "";
+  pointer-events: none;
+  background: url(/sky/handwritten-rule.svg) 50%/100% 100% no-repeat;
+  height: 5px;
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  right: 0;
+}
+
+.sky-note-field-heading {
+  justify-content: space-between;
+  align-items: baseline;
+  gap: 8px;
+  min-height: 24px;
+  display: flex;
+}
+
+.sky-note-field-heading label {
+  color: var(--paper-pencil);
+  font-size: 16px;
+  line-height: 24px;
+  transition: color 0.22s;
+  display: block;
+}
+
+.sky-note-field input,
+.sky-note-field textarea {
+  appearance: none;
+  width: 100%;
+  min-width: 0;
+  box-shadow: none;
+  color: var(--paper-ink);
+  caret-color: var(--paper-pencil);
+  font: inherit;
+  font-family: Kalam, var(--font-kalam), Bradley Hand, cursive;
+  resize: vertical;
+  background: transparent;
+  border: 0;
+  border-radius: 0;
+  margin: 0;
+  padding: 0 4px;
+  font-size: 18px;
+  line-height: 26px;
+  transition: color 0.22s;
+  display: block;
+  outline: none;
+}
+
+.sky-note-field textarea {
+  min-height: 80px;
+  max-height: 180px;
+  resize: none;
+}
+
+.sky-note-error {
+  color: var(--paper-error);
+  font: inherit;
+  white-space: nowrap;
+  font-size: 15px;
+  line-height: 24px;
+}
+
+.sky-note-content .sky-note-tape {
+  min-height: 44px;
+  color: var(--paper-heading);
+  filter: brightness(calc(0.9 + var(--paper-highlight, 1) * 0.1));
+  font: inherit;
+  clip-path: polygon(1% 2%, 98% 0, 97% 15%, 100% 24%, 98% 39%, 100% 56%, 97% 72%, 99% 95%, 0 100%, 2% 80%, 0 67%, 2% 45%, 0 28%);
+  cursor: pointer;
+  background: linear-gradient(100deg, rgba(209, 189, 140, 0.75), rgba(226, 206, 165, 0.95) 40%, rgba(214, 196, 153, 0.75));
+  border: none;
+  border-radius: 0;
+  justify-content: center;
+  align-items: center;
+  gap: 10px;
+  margin: 22px auto 0;
+  padding: 6px 19px;
+  font-size: 20px;
+  font-weight: 700;
+  display: flex;
+  transform: rotate(-3deg);
+  transition: transform 0.15s ease, filter 0.15s ease;
+}
+
+.sky-note-content .sky-note-tape:hover {
+  filter: brightness(1.05);
+  transform: rotate(-2deg) scale(1.02);
+}
+
+.sky-note-content .sky-note-tape:active {
+  transform: rotate(-3deg) scale(0.97);
+}
+
+/* Meadow Footer Credit & Interactive Attribution */
+.meadow-credit {
+  z-index: 25;
+  color: #fff;
+  text-shadow: 0 1px 3px rgba(10, 30, 18, 0.7), 0 0 14px rgba(10, 30, 18, 0.45);
+  flex-wrap: wrap;
+  justify-content: space-between;
+  align-items: baseline;
+  gap: 16px;
+  font-size: 11px;
+  display: flex;
+  position: absolute;
+  bottom: 30px;
+  left: 28px;
+  right: 28px;
+  pointer-events: auto;
+}
+
+.meadow-footer-links {
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 16px;
+  display: flex;
+}
+
+.meadow-analytics {
+  position: relative;
+}
+
+.meadow-analytics summary {
+  cursor: pointer;
+  text-decoration: none;
+  list-style: none;
+  user-select: none;
+  transition: opacity 0.15s ease;
+}
+
+.meadow-analytics summary:hover {
+  opacity: 0.85;
+}
+
+.meadow-analytics summary::-webkit-details-marker {
+  display: none;
+}
+
+.meadow-analytics summary::marker {
+  content: "";
+}
+
+.meadow-analytics-card,
+.meadow-analytics p {
+  position: absolute;
+  bottom: calc(100% + 12px);
+  inset-inline-end: 0;
+  width: min(290px, 100vw - 48px);
+  background: var(--sky-panel-glass, rgba(255, 255, 255, 0.76));
+  color: var(--sky-ink, #162332);
+  -webkit-backdrop-filter: var(--sky-glass-filter, blur(18px) saturate(1.2));
+  backdrop-filter: var(--sky-glass-filter, blur(18px) saturate(1.2));
+  text-shadow: none;
+  border-radius: 24px;
+  padding: 16px 18px;
+  font-size: 13px;
+  line-height: 1.55;
+  box-shadow: 0 8px 32px rgba(16, 42, 65, 0.14);
+  border: 1px solid var(--sky-glass-border, rgba(255, 255, 255, 0.45));
+  z-index: 40;
+  pointer-events: auto;
+  box-sizing: border-box;
+}
+
+.meadow-analytics-card p {
+  position: static;
+  background: none;
+  width: auto;
+  color: inherit;
+  backdrop-filter: none;
+  -webkit-backdrop-filter: none;
+  box-shadow: none;
+  border: none;
+  border-radius: 0;
+  padding: 0;
+  margin: 0;
+  font-size: inherit;
+  line-height: inherit;
+}
+
+.meadow-analytics a {
+  color: inherit;
+  text-decoration: none;
+  cursor: pointer;
+  transition: opacity 0.15s ease, text-decoration 0.15s ease;
+}
+
+.meadow-analytics a:hover {
+  text-decoration: underline;
+  text-underline-offset: 2px;
+  opacity: 0.8;
+}
+
+.meadow-credit-phone {
+  display: none;
+}
+
+@media (max-width: 560px) {
+  .meadow-weather-source {
+    display: none;
+  }
+  .meadow-credit {
+    gap: 12px;
+    font-size: 10px;
+    bottom: 34px;
+    left: 24px;
+    right: 24px;
+  }
+  .meadow-credit-phone {
+    display: block;
+    margin-top: 10px;
+    padding-top: 10px;
+    border-top: 1px solid rgba(255, 255, 255, 0.2);
+  }
+}
+
+/* =========================================================================
+   3D MEADOW GARDEN TERRAIN & SWAYING GRASS
+   ========================================================================= */
+.meadow-garden {
+  background: transparent;
+  width: 100%;
+  height: clamp(260px, 28vw, 500px);
+  margin-top: -120px;
+  position: relative;
+  overflow: hidden;
+}
+
+.meadow-garden canvas {
+  touch-action: pan-y;
+  width: 100%;
+  height: 100%;
+  display: block;
+}
+
+.meadow-garden img {
+  object-fit: cover;
+  object-position: center bottom;
+  width: 100%;
+  height: 100%;
+  filter: brightness(var(--meadow-brightness, 1)) saturate(var(--meadow-saturation, 1));
+  transition: filter 0.7s;
+  display: block;
+}
+
+.meadow-garden[data-fallback=true]:after {
+  content: "";
+  background: var(--meadow-tint, #fff0d4);
+  mix-blend-mode: color;
+  opacity: var(--meadow-tint-opacity, 0.1);
+  pointer-events: none;
+  transition: background-color 0.7s, opacity 0.7s;
+  position: absolute;
+  inset: 0;
+  -webkit-mask-image: url(/sky/meadow-photographic-v2-optimized.webp);
+  mask-image: url(/sky/meadow-photographic-v2-optimized.webp);
+  -webkit-mask-position: bottom;
+  mask-position: bottom;
+  -webkit-mask-size: cover;
+  mask-size: cover;
+  -webkit-mask-repeat: no-repeat;
+  mask-repeat: no-repeat;
+}
+

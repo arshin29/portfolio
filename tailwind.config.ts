@@ -55,6 +55,17 @@ const config: Config = {
           "Consolas",
           "monospace",
         ],
+        serif: [
+          "var(--font-instrument-serif)",
+          "Newsreader",
+          "Georgia",
+          "serif",
+        ],
+        handwriting: [
+          "var(--font-kalam)",
+          "Caveat",
+          "cursive",
+        ],
       },
       maxWidth: {
         narrow: "692px",

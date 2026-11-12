@@ -178,11 +178,21 @@ export default function NightSkyDial({
     }
   };
 
-  // Formatted 12-hour digital time
+  // Formatted 12-hour digital time and phase name
   const period = displayedHours >= 12 ? "PM" : "AM";
   const display12Hours = displayedHours % 12 === 0 ? 12 : displayedHours % 12;
   const formattedMinutes = displayedMinutes < 10 ? `0${displayedMinutes}` : displayedMinutes;
   const formattedTimeString = `${display12Hours}:${formattedMinutes} ${period}`;
+  const isDay = displayedHours >= 6 && displayedHours < 18;
+
+  const getPhaseName = (decHour: number) => {
+    if (decHour >= 5 && decHour < 6.5) return "Dawn";
+    if (decHour >= 6.5 && decHour < 16.5) return "Daylight";
+    if (decHour >= 16.5 && decHour < 18.5) return "Golden hour";
+    if (decHour >= 18.5 && decHour < 21) return "Evening";
+    return "Night";
+  };
+  const phaseName = getPhaseName(displayedHours + displayedMinutes / 60);
 
   // 1. Prominent Outer Ticks with Muted-Blue to Warm-Accent Progression (Matches Screenshot 3)
   const outerTicksCount = 41;
@@ -251,7 +261,7 @@ export default function NightSkyDial({
               y1={t.y1}
               x2={t.x2}
               y2={t.y2}
-              stroke="rgba(255, 255, 255, 0.16)"
+              stroke={isDay ? "rgba(0, 0, 0, 0.12)" : "rgba(255, 255, 255, 0.16)"}
               strokeWidth="1"
             />
           ))}
@@ -260,7 +270,7 @@ export default function NightSkyDial({
           <path
             d={arcBackgroundPath}
             fill="none"
-            stroke="rgba(255, 255, 255, 0.22)"
+            stroke={isDay ? "rgba(0, 0, 0, 0.18)" : "rgba(255, 255, 255, 0.22)"}
             strokeWidth="1.2"
             strokeLinecap="round"
           />
@@ -271,7 +281,7 @@ export default function NightSkyDial({
             y1={cy - radius + 8}
             x2={cx}
             y2={cy - radius - 10}
-            stroke="rgba(255, 255, 255, 0.4)"
+            stroke={isDay ? "rgba(0, 0, 0, 0.25)" : "rgba(255, 255, 255, 0.4)"}
             strokeWidth="1.2"
           />
 
@@ -291,27 +301,31 @@ export default function NightSkyDial({
 
           {/* Faceted 3D Origami Triangular Pointer (Screenshots 3 & 4 Match) */}
           <g filter="url(#dialNeedleShadow)">
-            {/* Left Facet: Bright Pure White */}
+            {/* Left Facet */}
             <polygon
               points={leftFacetPoints}
-              fill="#ffffff"
+              fill={isDay ? "#334155" : "#ffffff"}
             />
-            {/* Right Facet: Soft Silver-Grey Shading */}
+            {/* Right Facet: Soft Shading */}
             <polygon
               points={rightFacetPoints}
-              fill="#cbd5e1"
+              fill={isDay ? "#64748b" : "#cbd5e1"}
             />
           </g>
         </svg>
 
-        {/* Large Digital Time & Instruction (Center - positioned cleanly below pointer sweep) */}
-        <div className="absolute top-[70px] flex flex-col items-center pointer-events-none text-center">
-          <span className="text-[29px] font-semibold text-white tracking-tight font-sans leading-none drop-shadow-md">
+        {/* Large Digital Time & Phase Caption (Center - matching Thoufik reference) */}
+        <div className="absolute top-[68px] flex flex-col items-center pointer-events-none text-center">
+          <span className={`text-[28px] font-semibold tracking-tight font-sans leading-none drop-shadow-sm ${
+            isDay ? "text-[#142132]" : "text-white"
+          }`}>
             {formattedTimeString}
           </span>
 
-          <span className="text-[12px] text-white/65 font-sans tracking-normal mt-1.5">
-            {isExploring ? "Explored time" : "Drag to explore"}
+          <span className={`text-[12px] font-sans tracking-normal mt-1.5 font-medium ${
+            isDay ? "text-[#52647c]" : "text-white/60"
+          }`}>
+            {phaseName}
           </span>
         </div>
       </div>
@@ -322,9 +336,13 @@ export default function NightSkyDial({
           <button
             onClick={resetToLive}
             type="button"
-            className="inline-flex items-center gap-1.5 text-xs font-sans px-3 py-1 rounded-full bg-white/10 hover:bg-white/20 border border-white/20 text-white transition-colors cursor-pointer shadow-sm"
+            className={`inline-flex items-center gap-1.5 text-xs font-sans px-3 py-1 rounded-full border transition-colors cursor-pointer shadow-sm ${
+              isDay
+                ? "bg-black/5 hover:bg-black/10 border-black/10 text-[#142132]"
+                : "bg-white/10 hover:bg-white/20 border-white/20 text-white"
+            }`}
           >
-            <RotateCcw className="w-3 h-3 text-amber-300" />
+            <RotateCcw className="w-3 h-3 text-amber-400" />
             <span>Reset to live time</span>
           </button>
         </div>

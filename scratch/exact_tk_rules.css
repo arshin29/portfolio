@@ -1,0 +1,24 @@
+.tk{--mx:50;--my:40;--rx:0deg;--ry:0deg;--stub:76%;--notch:1.7cqw;aspect-ratio:2.55;perspective:1800px;color:#fff;cursor:pointer;-webkit-tap-highlight-color:transparent;width:100%;text-decoration:none;display:block;position:relative;container-type:inline-size}
+.tk:hover .tk-tilt{transition-duration:.12s}
+.tk-grain{pointer-events:none;mix-blend-mode:overlay;opacity:.5;background:url(/postcard/noise.svg) 0 0/18cqw 18cqw;position:absolute;inset:0}
+.tk-photo img{object-fit:cover;width:100%;height:100%;display:block}
+.tk-name{letter-spacing:-.01em;text-wrap:balance;font-family:Instrument Serif,Georgia,serif;font-size:5.8cqw;line-height:.95}
+.tk-go{z-index:2;letter-spacing:.14em;text-transform:uppercase;height:5.8cqw;font-size:1.3cqw;font-weight:600;line-height:1;display:inline-flex;position:absolute;bottom:3cqw;left:45cqw}
+.tk-go a:focus-visible{outline-offset:.4cqw;outline:.3cqw solid #fff}
+.tk-go-b{--glint:.5;background:var(--shine), #ffffffb8;color:var(--tone-a);-webkit-mask-composite:source-in;border-radius:0 1cqw 1cqw 0;gap:.8cqw;padding:0 2.3cqw 0 1.9cqw;-webkit-mask-image:radial-gradient(.62cqw at 0 0,#0000 98%,#000),radial-gradient(.62cqw at 0 100%,#0000 98%,#000);mask-image:radial-gradient(.62cqw at 0 0,#0000 98%,#000),radial-gradient(.62cqw at 0 100%,#0000 98%,#000);-webkit-mask-position:0 0,0 0;mask-position:0 0,0 0;-webkit-mask-size:auto,auto;mask-size:auto,auto;-webkit-mask-repeat:repeat,repeat;mask-repeat:repeat,repeat;-webkit-mask-clip:border-box,border-box;mask-clip:border-box,border-box;-webkit-mask-origin:border-box,border-box;mask-origin:border-box,border-box;-webkit-mask-composite:source-in;mask-composite:intersect;-webkit-mask-source-type:auto,auto;mask-mode:match-source,match-source}
+.tk-go-b:hover{background:var(--shine), #fffffff0}
+.tk-go-a:active{color:#fff;background:#fff3}
+.tk-name,.tk-premise,.tk-formula,.tk-label,.tk-qr,.tk-bars{-webkit-mask:url(/postcard/tex-ink.png) 0 0 / 30cqw 30cqw, linear-gradient(rgb(0 0 0/var(--keep,.8)) 0 0);-webkit-mask:url(/postcard/tex-ink.png) 0 0 / 30cqw 30cqw, linear-gradient(rgb(0 0 0/var(--keep,.8)) 0 0);mask:url(/postcard/tex-ink.png) 0 0 / 30cqw 30cqw, linear-gradient(rgb(0 0 0/var(--keep,.8)) 0 0)}
+.tk-formula{color:#fffffff0;font-size:1.85cqw;line-height:1.5}
+.tk-photo:after{content:"";pointer-events:none;mix-blend-mode:soft-light;opacity:.55;background:url(/postcard/noise.svg) 0 0/14cqw 14cqw;position:absolute;inset:0}
+.tk-shine{z-index:1;pointer-events:none;background:radial-gradient(circle at calc(var(--mx) * 1%) calc(var(--my) * 1%), #ffffff42, transparent 42%), linear-gradient(115deg, transparent calc(var(--mx) * 0.9% - 16%), #ffffff24 calc(var(--mx) * 0.9%), transparent calc(var(--mx) * 0.9% + 16%));mix-blend-mode:soft-light;position:absolute;inset:0}
+.tk-qr{aspect-ratio:1;flex:none;width:100%;max-width:15.5cqw;margin-top:.4cqw;display:block}
+.tk-label{letter-spacing:.12em;text-transform:uppercase;text-align:center;color:#ffffffe0;gap:.3cqw;font-size:1.15cqw;font-weight:500;line-height:1.4;display:grid}
+.tk-tilt{position:relative}
+.tk-photo,.tk-text,.tk-stub{position:static}
+.tk-text{grid-area:text;gap:3cqw;width:auto;margin:3.5cqw 0 5cqw}
+.tk-premise,.tk-formula{font-size:4.2cqw}
+.tk-go-a,.tk-go-b{flex:1 1 0;justify-content:center}
+.tk-go-b{-webkit-mask-composite:source-in;border-radius:0 2cqw 2cqw 0;gap:1.6cqw;padding:0 2.4cqw;-webkit-mask-image:radial-gradient(1.2cqw at 0 0,#0000 98%,#000),radial-gradient(1.2cqw at 0 100%,#0000 98%,#000);mask-image:radial-gradient(1.2cqw at 0 0,#0000 98%,#000),radial-gradient(1.2cqw at 0 100%,#0000 98%,#000);-webkit-mask-position:0 0,0 0;mask-position:0 0,0 0;-webkit-mask-size:auto,auto;mask-size:auto,auto;-webkit-mask-repeat:repeat,repeat;mask-repeat:repeat,repeat;-webkit-mask-clip:border-box,border-box;mask-clip:border-box,border-box;-webkit-mask-origin:border-box,border-box;mask-origin:border-box,border-box;-webkit-mask-composite:source-in;mask-composite:intersect;-webkit-mask-source-type:auto,auto;mask-mode:match-source,match-source}
+.tk-stub{flex-direction:row;grid-area:stub;align-items:center;gap:5cqw;height:25cqw;margin:0 -6cqw;padding:3.4cqw 6cqw}
+.tk-info{display:none}

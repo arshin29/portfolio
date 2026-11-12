@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useEffect, useRef, useState } from "react";
+import React, { useEffect, useRef, useState, useCallback } from "react";
 import {
   Moon,
   Sun,
@@ -32,6 +32,9 @@ import {
 } from "@/lib/weather";
 import { skySound } from "@/lib/sound";
 import NightSkyDial, { SkyOption } from "./NightSkyDial";
+import { getSkySettingsForHour, dispatchSkyUpdate, SkySettings } from "@/lib/skyController";
+
+type WeatherMode = "auto" | "clear" | "cloudy" | "rain";
 
 interface InteractiveSkyWidgetProps {
   className?: string;
@@ -55,20 +58,24 @@ export default function InteractiveSkyWidget({
   const [location, setLocation] = useState<CityLocation>(PRESET_CITIES[0]); // Ratnagiri
   const [weather, setWeather] = useState<WeatherData | null>(null);
   const [isLoadingWeather, setIsLoadingWeather] = useState(false);
-  const [weatherError, setWeatherError] = useState<string | null>(null);
 
   // Time tracking
   const [currentTime, setCurrentTime] = useState<Date>(new Date());
-  const [timeString, setTimeString] = useState<string>("2:34 AM");
+  const [timeString, setTimeString] = useState<string>("8:45 PM");
 
   // Exploration time
   const [isExploring, setIsExploring] = useState(false);
   const [exploredTimeString, setExploredTimeString] = useState<string>("");
+  const [exploredHoursVal, setExploredHoursVal] = useState<number | undefined>(undefined);
+  const [exploredMinutesVal, setExploredMinutesVal] = useState<number | undefined>(undefined);
 
-  // Sky options & audio
-  const [skyOption, setSkyOption] = useState<SkyOption>("night");
+  // Sky options controls
   const [skyOptionsExpanded, setSkyOptionsExpanded] = useState(false);
+  const [weatherMode, setWeatherMode] = useState<WeatherMode>("auto");
+  const [skyMotion, setSkyMotion] = useState(true);
+  const [nightFireworks, setNightFireworks] = useState(false);
   const [isMuted, setIsMuted] = useState(true);
+  const [volume, setVolume] = useState(0.5);
 
   // City Picker Dropdown / Search Modal
   const [cityPickerOpen, setCityPickerOpen] = useState(false);
@@ -114,7 +121,7 @@ export default function InteractiveSkyWidget({
     }
   }, [isOpen, prefersReducedMotion]);
 
-  // Initial Load & Geolocation on First Visit
+  // Initial Load & Geolocation
   useEffect(() => {
     if (typeof window !== "undefined") {
       const params = new URLSearchParams(window.location.search);
@@ -122,15 +129,19 @@ export default function InteractiveSkyWidget({
       if (params.get("hover") === "true") setIsHovered(true);
     }
 
-    const savedSky = localStorage.getItem("sky_option_pref") as SkyOption | null;
-    if (savedSky && ["night", "dawn", "day", "dusk"].includes(savedSky)) {
-      setSkyOption(savedSky);
-    }
-
     const savedSound = localStorage.getItem("sky_sound_pref");
     if (savedSound === "unmuted") {
       setIsMuted(false);
       skySound.setMuted(false);
+    }
+
+    const savedVol = localStorage.getItem("sky_volume_pref");
+    if (savedVol) {
+      const v = parseFloat(savedVol);
+      if (!isNaN(v)) {
+        setVolume(v);
+        skySound.setVolume(v);
+      }
     }
 
     let cachedLocation: CityLocation | null = null;
@@ -148,10 +159,8 @@ export default function InteractiveSkyWidget({
       loadWeatherData(cachedLocation.latitude, cachedLocation.longitude);
     } else {
       const promptedBefore = localStorage.getItem("geo_permission_checked");
-
       if (!promptedBefore && typeof navigator !== "undefined" && "geolocation" in navigator) {
         localStorage.setItem("geo_permission_checked", "requested");
-
         navigator.geolocation.getCurrentPosition(
           async (position) => {
             const lat = position.coords.latitude;
@@ -165,8 +174,7 @@ export default function InteractiveSkyWidget({
               loadWeatherData(PRESET_CITIES[0].latitude, PRESET_CITIES[0].longitude);
             }
           },
-          (err) => {
-            console.log("Geolocation permission error:", err.message);
+          () => {
             detectFallbackCity();
           },
           { timeout: 7000, maximumAge: 300000 }
@@ -184,7 +192,6 @@ export default function InteractiveSkyWidget({
     } catch {
       // fallback
     }
-
     const matched = PRESET_CITIES.find((c) => c.timezone === visitorTz);
     const chosen = matched || PRESET_CITIES[0];
     setLocation(chosen);
@@ -192,16 +199,14 @@ export default function InteractiveSkyWidget({
     loadWeatherData(chosen.latitude, chosen.longitude);
   };
 
-  // Fetch Real Weather Data
+  // Fetch Weather Data
   const loadWeatherData = async (lat: number, lon: number) => {
     setIsLoadingWeather(true);
-    setWeatherError(null);
     try {
       const data = await fetchWeather(lat, lon);
       setWeather(data);
     } catch (err: any) {
       console.warn("Weather error:", err?.message);
-      setWeatherError("Unavailable");
     } finally {
       setIsLoadingWeather(false);
     }
@@ -263,19 +268,46 @@ export default function InteractiveSkyWidget({
     skySound.playTick();
   };
 
+  const handleUseCurrentLocation = () => {
+    if (typeof navigator === "undefined" || !navigator.geolocation) return;
+    setIsSearching(true);
+    navigator.geolocation.getCurrentPosition(
+      async (pos) => {
+        try {
+          const { latitude, longitude } = pos.coords;
+          const geoInfo = await reverseGeocode(latitude, longitude);
+          const userLoc: CityLocation = {
+            name: geoInfo?.name || "Current Location",
+            country: geoInfo?.country || "",
+            latitude,
+            longitude,
+            timezone: geoInfo?.timezone || Intl.DateTimeFormat().resolvedOptions().timeZone || "UTC",
+          };
+          selectCity(userLoc);
+        } catch (e) {
+          console.warn("Geolocation reverse geocode error:", e);
+        } finally {
+          setIsSearching(false);
+        }
+      },
+      () => {
+        setIsSearching(false);
+      },
+      { timeout: 8000 }
+    );
+  };
+
   useEffect(() => {
     if (!searchQuery.trim() || searchQuery.trim().length < 2) {
       setSearchResults([]);
       return;
     }
-
     const timer = setTimeout(async () => {
       setIsSearching(true);
       const results = await searchCities(searchQuery);
       setSearchResults(results);
       setIsSearching(false);
     }, 350);
-
     return () => clearTimeout(timer);
   }, [searchQuery]);
 
@@ -286,10 +318,10 @@ export default function InteractiveSkyWidget({
     localStorage.setItem("sky_sound_pref", nextMuted ? "muted" : "unmuted");
   };
 
-  const selectSkyOption = (opt: SkyOption) => {
-    setSkyOption(opt);
-    localStorage.setItem("sky_option_pref", opt);
-    skySound.playTick();
+  const handleVolumeChange = (v: number) => {
+    setVolume(v);
+    skySound.setVolume(v);
+    localStorage.setItem("sky_volume_pref", v.toString());
   };
 
   // Weather Icon Helper
@@ -298,6 +330,20 @@ export default function InteractiveSkyWidget({
     isDay?: boolean,
     className: string = "w-5 h-5"
   ) => {
+    if (weatherMode === "clear") {
+      return isDay ? (
+        <Sun className={`${className} text-amber-300 stroke-[2.2]`} />
+      ) : (
+        <Moon className={`${className} text-white stroke-[2.2] -rotate-[15deg]`} />
+      );
+    }
+    if (weatherMode === "cloudy") {
+      return <Cloud className={`${className} text-white stroke-[2.2]`} />;
+    }
+    if (weatherMode === "rain") {
+      return <CloudRain className={`${className} text-blue-200 stroke-[2.2]`} />;
+    }
+
     switch (iconType) {
       case "sun":
         return <Sun className={`${className} text-amber-300 stroke-[2.2]`} />;
@@ -328,9 +374,65 @@ export default function InteractiveSkyWidget({
     }
   };
 
+  // Active time calculations
   const { hours, minutes } = getHoursMinutesForZone(currentTime, location.timezone);
+  const activeHour = isExploring && exploredHoursVal !== undefined ? exploredHoursVal : hours;
+  const activeMin = isExploring && exploredMinutesVal !== undefined ? exploredMinutesVal : minutes;
+  const activeDecimalHour = activeHour + activeMin / 60;
+  const isDaytime = activeHour >= 6 && activeHour < 18;
 
-  // Computed reveal state (smooth horizontal expansion to the left)
+  // Sync with document element theme and dispatch real-time sky settings
+  useEffect(() => {
+    let cloudVal = 0.2;
+    let rainVal = 0;
+    let lightOverride: number | undefined = undefined;
+
+    if (weatherMode === "auto") {
+      const isCloudy = weather?.iconType?.includes("cloud");
+      cloudVal = isCloudy ? 0.65 : weather?.weatherCode ? Math.min(1, weather.weatherCode * 0.2) : 0.2;
+      rainVal = weather?.weatherCode && weather.weatherCode >= 51 ? 0.75 : 0;
+    } else if (weatherMode === "clear") {
+      cloudVal = 0.05;
+      rainVal = 0;
+    } else if (weatherMode === "cloudy") {
+      cloudVal = 0.85;
+      rainVal = 0;
+    } else if (weatherMode === "rain") {
+      cloudVal = 0.9;
+      rainVal = 0.85;
+      lightOverride = Math.min(isDaytime ? 0.5 : 0.1, 0.45);
+    }
+
+    const settings = getSkySettingsForHour(activeDecimalHour, {
+      cloud: cloudVal,
+      rain: rainVal,
+      ...(lightOverride !== undefined ? { light: lightOverride } : {}),
+      wind: skyMotion ? (weather?.windSpeed ? Math.min(12, weather.windSpeed) : 6) : 0,
+    });
+
+    dispatchSkyUpdate(settings);
+
+    if (typeof document !== "undefined") {
+      const root = document.documentElement;
+      root.style.setProperty("--sky-top", settings.top);
+      root.style.setProperty("--sky-mid", settings.bottom);
+      root.style.setProperty("--sky-bottom", settings.bottom);
+      root.style.setProperty("--sky-fallback-top", settings.top);
+      root.style.setProperty("--sky-fallback-bottom", settings.bottom);
+      root.style.setProperty("--theme-blend", isDaytime ? "1" : "0");
+      root.style.setProperty("--daylight", isDaytime ? "1" : "0");
+
+      // Set class="dark" so all Tailwind dark: classes activate cleanly!
+      root.classList.toggle("dark", !isDaytime);
+      if (isDaytime) {
+        root.removeAttribute("data-theme");
+      } else {
+        root.setAttribute("data-theme", "night");
+      }
+    }
+  }, [activeDecimalHour, isDaytime, weather, weatherMode, skyMotion]);
+
+  // Computed reveal state for collapsed pill
   const isRevealed = isHovered || isOpen || isMobileRevealed;
 
   const toggleOpen = () => {
@@ -358,95 +460,130 @@ export default function InteractiveSkyWidget({
       className={`fixed top-4 right-4 sm:top-[33px] sm:right-[70px] z-50 flex flex-col items-end pointer-events-auto ${className}`}
     >
       {/* 
-        1. COLLAPSED FLOATING PILL
-        - Initially shows weather/moon icon, current local time and downward chevron.
-        - On hover (or tap on mobile), smoothly reveals city name to the left of time.
-        - Expands horizontally towards the left via items-end, keeping its right edge fixed.
-        - On pointer leave, smoothly returns to compact state with cubic-bezier(0.2, 0, 0, 1).
+        1. TOP BAR: CIRCULAR SOUND BUTTON (LEFT) + WEATHER/TIME PILL (RIGHT)
+        Matches Reference Image 2 & 3:
+        [ 🔊 ]  [ 🌙 Ratnagiri · 8:45 PM  ⌃ ]
       */}
-      <div
-        onPointerEnter={() => setIsHovered(true)}
-        onPointerLeave={() => setIsHovered(false)}
-        className="relative flex items-center h-[48px] sm:h-[50px] rounded-full bg-[#162133]/[0.55] hover:bg-[#1a283e]/[0.65] border border-white/[0.14] hover:border-white/[0.22] backdrop-blur-xl font-sans text-white px-4 sm:px-5 transition-colors duration-200 shadow-[0_8px_32px_rgba(0,0,0,0.36)] select-none group"
-      >
-        {/* Pill Content Trigger (Icon + City + Time) */}
+      <div className="flex items-center gap-2 select-none">
+        {/* Separate Circular Sound Toggle Button */}
         <button
           type="button"
-          onClick={handlePillBodyClick}
-          onFocus={() => setIsHovered(true)}
-          onBlur={() => setIsHovered(false)}
-          aria-expanded={isOpen}
-          aria-controls="sky-weather-panel"
-          aria-label={`Current location ${location.name}, weather and time widget`}
-          className="inline-flex items-center gap-2.5 cursor-pointer outline-none focus-visible:ring-1 focus-visible:ring-white/40 rounded-full"
+          onClick={toggleSound}
+          aria-label={isMuted ? "Unmute ambient sounds" : "Mute ambient sounds"}
+          className={`w-[46px] h-[46px] sm:w-[48px] sm:h-[48px] rounded-full border backdrop-blur-2xl flex items-center justify-center transition-all duration-200 cursor-pointer outline-none focus-visible:ring-2 focus-visible:ring-current/40 ${
+            isDaytime
+              ? "bg-white/45 hover:bg-white/60 border-white/50 text-[#142132] shadow-[0_4px_24px_rgba(0,0,0,0.06)]"
+              : "bg-[#142033]/[0.65] hover:bg-[#18263c]/[0.75] border-white/[0.14] text-white shadow-[0_8px_32px_rgba(0,0,0,0.36)]"
+          }`}
+          title={isMuted ? "Ambient sound muted (click to unmute)" : "Ambient sound playing"}
         >
-          {/* Weather/Moon Icon */}
-          <span className="shrink-0 flex items-center justify-center">
-            {renderWeatherIcon(weather?.iconType, weather?.isDay, "w-[18px] h-[18px] sm:w-[20px] sm:h-[20px]")}
-          </span>
+          {isMuted ? (
+            <VolumeX className="w-[18px] h-[18px] stroke-[2.2] opacity-60" />
+          ) : (
+            <Volume2 className="w-[18px] h-[18px] stroke-[2.2] text-current" />
+          )}
+        </button>
 
-          {/* Smooth City Reveal Container (0fr -> 1fr grid transition) */}
-          <span
-            className={`grid ${
-              prefersReducedMotion
-                ? "duration-0"
-                : "transition-[grid-template-columns,opacity,margin] duration-[260ms] ease-[cubic-bezier(0.2,0,0,1)]"
-            } ${
-              isRevealed
-                ? "grid-cols-[1fr] opacity-100 mr-0"
-                : "grid-cols-[0fr] opacity-0 -mr-2.5"
-            }`}
-            aria-hidden={!isRevealed}
+        {/* Collapsed Weather & Time Pill */}
+        <div
+          onPointerEnter={() => setIsHovered(true)}
+          onPointerLeave={() => setIsHovered(false)}
+          className={`relative flex items-center h-[46px] sm:h-[48px] rounded-full border backdrop-blur-2xl font-sans px-4 sm:px-5 transition-all duration-300 group ${
+            isDaytime
+              ? "bg-white/45 hover:bg-white/60 border-white/50 text-[#142132] shadow-[0_4px_24px_rgba(0,0,0,0.06)]"
+              : "bg-[#142033]/[0.65] hover:bg-[#18263c]/[0.75] border-white/[0.14] text-white shadow-[0_8px_32px_rgba(0,0,0,0.36)]"
+          }`}
+        >
+          {/* Pill Trigger */}
+          <button
+            type="button"
+            onClick={handlePillBodyClick}
+            onFocus={() => setIsHovered(true)}
+            onBlur={() => setIsHovered(false)}
+            aria-expanded={isOpen}
+            aria-controls="sky-weather-panel"
+            aria-label={`Current location ${location.name}, weather and time widget`}
+            className="inline-flex items-center gap-2.5 cursor-pointer outline-none rounded-full"
           >
-            <span className="min-w-0 overflow-hidden whitespace-nowrap inline-flex items-center gap-2">
-              <span className="text-[14px] sm:text-[15px] font-medium text-white tracking-[-0.01em]">
-                {location.name}
-              </span>
-              <span className="text-white/40 text-xs select-none">·</span>
+            {/* Weather/Moon Icon */}
+            <span className="shrink-0 flex items-center justify-center">
+              {renderWeatherIcon(weather?.iconType, weather?.isDay ?? isDaytime, "w-[18px] h-[18px] sm:w-[20px] sm:h-[20px]")}
             </span>
-          </span>
 
-          {/* Time Display */}
-          <span
-            suppressHydrationWarning
-            className="text-[14px] sm:text-[15px] font-medium text-white whitespace-nowrap tracking-tight tabular-nums"
+            {/* City Reveal Container (Smooth expand to left) */}
+            <span
+              className={`grid ${
+                prefersReducedMotion
+                  ? "duration-0"
+                  : "transition-[grid-template-columns,opacity,margin] duration-[260ms] ease-[cubic-bezier(0.2,0,0,1)]"
+              } ${
+                isRevealed
+                  ? "grid-cols-[1fr] opacity-100 mr-0"
+                  : "grid-cols-[0fr] opacity-0 -mr-2.5"
+              }`}
+              aria-hidden={!isRevealed}
+            >
+              <span className="min-w-0 overflow-hidden whitespace-nowrap inline-flex items-center gap-2">
+                <span className={`text-[14px] sm:text-[15px] font-medium tracking-[-0.01em] ${isDaytime ? "text-[#142132]" : "text-white"}`}>
+                  {location.name}
+                </span>
+                <span className={`text-xs select-none ${isDaytime ? "text-[#142132]/40" : "text-white/40"}`}>·</span>
+              </span>
+            </span>
+
+            {/* Time Display */}
+            <span
+              suppressHydrationWarning
+              className={`text-[14px] sm:text-[15px] font-medium whitespace-nowrap tracking-tight tabular-nums ${
+                isDaytime ? "text-[#142132]" : "text-white"
+              }`}
+            >
+              {isExploring ? exploredTimeString : timeString}
+            </span>
+          </button>
+
+          {/* Downward Chevron Button */}
+          <button
+            type="button"
+            onClick={handleChevronClick}
+            aria-expanded={isOpen}
+            aria-controls="sky-weather-panel"
+            aria-label={isOpen ? "Close weather and time panel" : "Open weather and time panel"}
+            className={`p-1 -mr-1 cursor-pointer outline-none rounded-full ml-1 ${
+              isDaytime ? "text-[#142132] hover:text-[#142132]/70" : "text-white hover:text-white/80"
+            }`}
           >
-            {isExploring ? exploredTimeString : timeString}
-          </span>
-        </button>
-
-        {/* Downward Chevron Button (Opens climate panel directly beneath pill, rotates 180deg) */}
-        <button
-          type="button"
-          onClick={handleChevronClick}
-          aria-expanded={isOpen}
-          aria-controls="sky-weather-panel"
-          aria-label={isOpen ? "Close weather and time panel" : "Open weather and time panel"}
-          className="p-1 -mr-1 text-white hover:text-white/80 cursor-pointer outline-none focus-visible:ring-1 focus-visible:ring-white/40 rounded-full ml-1"
-        >
-          <ChevronDown
-            className={`w-4 h-4 text-white shrink-0 stroke-[2.2] ${
-              prefersReducedMotion
-                ? "duration-0"
-                : "transition-transform duration-[220ms] ease-[cubic-bezier(0.2,0,0,1)]"
-            } ${isOpen ? "rotate-180" : "rotate-0 group-hover:translate-y-0.5"}`}
-            aria-hidden="true"
-          />
-        </button>
+            <ChevronDown
+              className={`w-4 h-4 shrink-0 stroke-[2.2] transition-transform duration-[220ms] ease-[cubic-bezier(0.2,0,0,1)] ${
+                isOpen ? "rotate-180" : "rotate-0 group-hover:translate-y-0.5"
+              }`}
+              aria-hidden="true"
+            />
+          </button>
+        </div>
       </div>
 
       {/* 
         2. EXPANDED CLIMATE PANEL
-        - Opens directly beneath pill, aligned with pill's right edge.
-        - Animated with subtle fade-in and vertical movement (initial: opacity 0, y: -8px, scale: 0.98 -> opacity 1, y: 0, scale: 1).
-        - Closes smoothly with reverse animation (exit: opacity 0, y: -6px, scale: 0.98).
-        - Easing matches reference: cubic-bezier(0.2, 0, 0, 1), duration 220ms.
+        Matches Reference Image 3:
+        - Header: City selector (Ratnagiri ⌄) + Sound (🔊) + Close (✕)
+        - Subheader: 🌙 Clear · 26° + Refresh (🔄)
+        - Dial: 24-hr arc + triangular faceted pointer + 8:45 PM + Evening
+        - Sky options ⌃:
+          - Weather: [ Auto | ☀️ | ☁️ | 🌧️ ]
+          - Sky motion: [ ON / OFF ]
+          - Night fireworks: [ ON / OFF ]
+          - Ambient sound: [ 🔊 ] slider [ ON / OFF ]
       */}
       {panelMounted && (
         <section
           id="sky-weather-panel"
           aria-label="Weather and time controls"
-          className={`relative mt-[12px] w-[326px] max-w-[calc(100vw-32px)] h-[343px] rounded-[23px] bg-[#131d2e]/[0.72] backdrop-blur-2xl border border-white/[0.12] shadow-[0_20px_50px_rgba(0,0,0,0.55)] overflow-hidden text-white px-6 py-5 flex flex-col justify-between origin-top-right select-none z-50 ${
+          className={`relative mt-[12px] w-[316px] max-w-[calc(100vw-32px)] max-h-[calc(100svh-100px)] rounded-[24px] backdrop-blur-2xl border overflow-y-auto px-5 py-4 flex flex-col justify-start origin-top-right select-none z-50 ${
+            isDaytime
+              ? "bg-white/80 border-white/60 text-[#142132] shadow-[0_20px_50px_rgba(0,0,0,0.12)]"
+              : "bg-[#131d2e]/[0.85] border-white/[0.12] text-white shadow-[0_20px_50px_rgba(0,0,0,0.55)]"
+          } ${
             prefersReducedMotion
               ? "duration-0"
               : "transition-[opacity,transform] duration-[220ms] ease-[cubic-bezier(0.2,0,0,1)]"
@@ -459,45 +596,50 @@ export default function InteractiveSkyWidget({
           }`}
         >
           {/* Header: City Selector (Left) + Sound & Close Buttons (Right) */}
-          <div className="flex items-center justify-between">
+          <div className="flex items-center justify-between pb-1">
             {/* City Selector Trigger */}
             <button
               type="button"
               onClick={() => {
                 setCityPickerOpen((prev) => !prev);
-                setSkyOptionsExpanded(false);
               }}
-              className="inline-flex items-center gap-1.5 text-xl font-medium tracking-tight text-white hover:text-white/80 transition-colors duration-150 cursor-pointer group"
+              className={`inline-flex items-center gap-1.5 text-lg font-medium tracking-tight transition-colors duration-150 cursor-pointer group ${
+                isDaytime ? "text-[#142132] hover:text-[#142132]/70" : "text-white hover:text-white/80"
+              }`}
               title="Change city"
             >
               <span>{location.name}</span>
               <ChevronDown
-                className={`w-4 h-4 text-white/80 stroke-[2] transition-transform duration-[220ms] ease-[cubic-bezier(0.2,0,0,1)] ${
+                className={`w-4 h-4 stroke-[2] transition-transform duration-[220ms] ease-[cubic-bezier(0.2,0,0,1)] ${
                   cityPickerOpen ? "rotate-180" : "rotate-0"
-                }`}
+                } ${isDaytime ? "text-[#142132]/80" : "text-white/80"}`}
               />
             </button>
 
             {/* Sound Toggle + Close Button */}
-            <div className="flex items-center gap-3.5">
+            <div className="flex items-center gap-2.5">
               <button
                 type="button"
                 onClick={toggleSound}
-                className="p-1 rounded-lg text-white/80 hover:text-white hover:bg-white/10 transition-colors duration-150 cursor-pointer"
+                className={`p-1.5 rounded-lg transition-colors duration-150 cursor-pointer ${
+                  isDaytime ? "text-[#142132]/80 hover:text-[#142132] hover:bg-black/5" : "text-white/80 hover:text-white hover:bg-white/10"
+                }`}
                 title={isMuted ? "Enable sound" : "Mute sound"}
                 aria-label={isMuted ? "Enable sound" : "Mute sound"}
               >
                 {isMuted ? (
-                  <VolumeX className="w-[18px] h-[18px] stroke-[2] opacity-50 transition-opacity" />
+                  <VolumeX className="w-[18px] h-[18px] stroke-[2] opacity-50" />
                 ) : (
-                  <Volume2 className="w-[18px] h-[18px] stroke-[2] opacity-100 text-white transition-opacity" />
+                  <Volume2 className="w-[18px] h-[18px] stroke-[2] opacity-100" />
                 )}
               </button>
 
               <button
                 type="button"
                 onClick={() => setIsOpen(false)}
-                className="p-1 rounded-lg text-white/80 hover:text-white hover:bg-white/10 transition-colors duration-150 cursor-pointer"
+                className={`p-1.5 rounded-lg transition-colors duration-150 cursor-pointer ${
+                  isDaytime ? "text-[#142132]/80 hover:text-[#142132] hover:bg-black/5" : "text-white/80 hover:text-white hover:bg-white/10"
+                }`}
                 title="Close panel"
                 aria-label="Close panel"
               >
@@ -506,9 +648,9 @@ export default function InteractiveSkyWidget({
             </div>
           </div>
 
-          {/* City Selector Search Subpanel (Modal/Overlay inside card) */}
+          {/* City Selector Search Subpanel (Modal Overlay inside card) */}
           {cityPickerOpen && (
-            <div className="absolute inset-x-4 top-13 bottom-4 rounded-2xl bg-[#0f1726]/95 border border-white/[0.12] p-3 space-y-2.5 backdrop-blur-xl z-20 flex flex-col animate-in fade-in zoom-in-95 duration-200">
+            <div className="absolute inset-x-3 top-12 bottom-3 rounded-2xl bg-[#0f1726]/95 border border-white/[0.12] p-3 space-y-2.5 backdrop-blur-xl z-20 flex flex-col animate-in fade-in zoom-in-95 duration-200">
               <div className="relative">
                 <Search className="w-3.5 h-3.5 text-white/60 absolute left-3 top-1/2 -translate-y-1/2 pointer-events-none" />
                 <input
@@ -520,6 +662,16 @@ export default function InteractiveSkyWidget({
                   className="w-full pl-9 pr-3 py-1.5 rounded-lg bg-white/10 border border-white/15 text-xs font-sans text-white placeholder:text-white/40 focus:outline-none focus:border-white/40 transition-colors"
                 />
               </div>
+
+              {/* Use My Location GPS */}
+              <button
+                type="button"
+                onClick={handleUseCurrentLocation}
+                className="w-full px-2.5 py-1.5 rounded-lg bg-blue-500/20 hover:bg-blue-500/30 border border-blue-400/30 flex items-center justify-between text-xs font-sans transition-colors cursor-pointer text-blue-200"
+              >
+                <span>📍 Use my location</span>
+                <span className="text-[10px] text-blue-300/70">GPS</span>
+              </button>
 
               <div className="flex-1 overflow-y-auto space-y-1 pr-1">
                 {isSearching ? (
@@ -568,12 +720,19 @@ export default function InteractiveSkyWidget({
             </div>
           )}
 
-          {/* Weather Row: Icon + "Clear sky · 24°" (Left) + Refresh Button (Right) */}
-          <div className="flex items-center justify-between text-white -mt-0.5">
+          {/* Condition Row: 🌙 Clear · 26° + Refresh Button (🔄) */}
+          <div className={`flex items-center justify-between py-1 ${isDaytime ? "text-[#142132]" : "text-white"}`}>
             <div className="flex items-center gap-2">
-              <span>{renderWeatherIcon(weather?.iconType, weather?.isDay, "w-[17px] h-[17px]")}</span>
-              <span className="text-[14px] font-sans text-white/90">
-                {weather ? weather.description : "Clear sky"} · {weather ? `${weather.temperature}°` : "24°"}
+              <span>{renderWeatherIcon(weather?.iconType, weather?.isDay ?? isDaytime, "w-[17px] h-[17px]")}</span>
+              <span className={`text-[14px] font-sans ${isDaytime ? "text-[#142132]/90" : "text-white/90"}`}>
+                {weatherMode === "clear"
+                  ? "Clear"
+                  : weatherMode === "cloudy"
+                  ? "Cloudy"
+                  : weatherMode === "rain"
+                  ? "Rain"
+                  : weather ? weather.description : "Clear"}{" "}
+                · {weather ? `${weather.temperature}°` : "26°"}
               </span>
             </div>
 
@@ -585,23 +744,27 @@ export default function InteractiveSkyWidget({
                 skySound.playTick();
               }}
               disabled={isLoadingWeather}
-              className="p-1 rounded-md text-white/70 hover:text-white hover:bg-white/10 transition-colors duration-150 cursor-pointer"
+              className={`p-1 rounded-md transition-colors duration-150 cursor-pointer ${
+                isDaytime ? "text-[#142132]/70 hover:text-[#142132] hover:bg-black/5" : "text-white/70 hover:text-white hover:bg-white/10"
+              }`}
               title="Refresh weather"
             >
-              <RotateCw className={`w-4 h-4 stroke-[2] ${isLoadingWeather ? "animate-spin text-white" : ""}`} />
+              <RotateCw className={`w-4 h-4 stroke-[2] ${isLoadingWeather ? "animate-spin text-current" : ""}`} />
             </button>
           </div>
 
-          {/* Interactive Semicircular Clock Dial */}
-          <div className="relative flex items-center justify-center -my-0.5">
+          {/* Semicircular Clock Dial */}
+          <div className="relative flex items-center justify-center my-1">
             <NightSkyDial
               realTimeHours={hours}
               realTimeMinutes={minutes}
               timeZone={location.timezone}
-              skyOption={skyOption}
+              skyOption="night"
               isDayWeather={weather?.isDay}
               onExploreChange={(exploring, expHours, expMinutes) => {
                 setIsExploring(exploring);
+                setExploredHoursVal(expHours);
+                setExploredMinutesVal(expMinutes);
                 if (exploring && expHours !== undefined && expMinutes !== undefined) {
                   const p = expHours >= 12 ? "PM" : "AM";
                   const h12 = expHours % 12 === 0 ? 12 : expHours % 12;
@@ -612,18 +775,18 @@ export default function InteractiveSkyWidget({
             />
           </div>
 
-          {/* Bottom Collapsible Row: Sky options ⌄ */}
-          <div className="flex items-center justify-between">
+          {/* Sky options Accordion Trigger */}
+          <div className={`pt-2 border-t ${isDaytime ? "border-black/[0.08]" : "border-white/[0.08]"}`}>
             <button
               type="button"
               onClick={() => {
-                setSkyOptionsExpanded((prev) => !prev);
-                setCityPickerOpen(false);
                 skySound.playTick();
+                setSkyOptionsExpanded((prev) => !prev);
               }}
-              className="inline-flex items-center gap-1.5 text-[13px] font-sans font-medium text-white/80 hover:text-white transition-colors duration-150 cursor-pointer"
+              aria-expanded={skyOptionsExpanded}
+              className={`sky-options-trigger ${isDaytime ? "text-[#142132]/75 hover:text-[#142132]" : "text-white/80 hover:text-white"}`}
             >
-              <span>Sky options</span>
+              <span className="font-medium text-[13.5px]">Sky options</span>
               <ChevronDown
                 className={`w-3.5 h-3.5 stroke-[2.2] transition-transform duration-[220ms] ease-[cubic-bezier(0.2,0,0,1)] ${
                   skyOptionsExpanded ? "rotate-180" : "rotate-0"
@@ -632,28 +795,150 @@ export default function InteractiveSkyWidget({
             </button>
           </div>
 
-          {/* Sky Options Overlay inside card */}
-          {skyOptionsExpanded && (
-            <div className="absolute inset-x-4 bottom-14 rounded-xl bg-[#0f1726]/95 border border-white/[0.12] p-2 grid grid-cols-4 gap-1.5 backdrop-blur-xl z-20 animate-in fade-in zoom-in-95 duration-200">
-              {(["night", "dawn", "day", "dusk"] as SkyOption[]).map((opt) => {
-                const isActive = skyOption === opt;
-                return (
+          {/* Sky options Accordion Content (Matches Reference Image 3) */}
+          <div
+            className="sky-extra-options"
+            data-open={skyOptionsExpanded}
+          >
+            <div className="sky-extra-options-content space-y-2 pt-2 pb-1">
+              {/* Row 1: Weather -> Segmented [ Auto | ☀️ | ☁️ | 🌧️ ] */}
+              <div className="sky-weather-options">
+                <span className={`text-[13px] font-medium ${isDaytime ? "text-[#142132]/80" : "text-white/80"}`}>
+                  Weather
+                </span>
+                <div className={`sky-segments ${isDaytime ? "day" : ""}`}>
                   <button
-                    key={opt}
                     type="button"
-                    onClick={() => selectSkyOption(opt)}
-                    className={`py-1.5 px-2 rounded-lg text-xs font-sans capitalize transition-all cursor-pointer text-center ${
-                      isActive
-                        ? "bg-white/25 text-white font-medium border border-white/30"
-                        : "bg-white/10 text-white/70 hover:text-white hover:bg-white/15 border border-transparent"
-                    }`}
+                    className="sky-segment-btn"
+                    aria-pressed={weatherMode === "auto"}
+                    onClick={() => {
+                      skySound.playTick();
+                      setWeatherMode("auto");
+                    }}
                   >
-                    {opt}
+                    Auto
                   </button>
-                );
-              })}
+                  <button
+                    type="button"
+                    className="sky-segment-btn"
+                    aria-pressed={weatherMode === "clear"}
+                    onClick={() => {
+                      skySound.playTick();
+                      setWeatherMode("clear");
+                    }}
+                    title="Clear"
+                  >
+                    ☀️
+                  </button>
+                  <button
+                    type="button"
+                    className="sky-segment-btn"
+                    aria-pressed={weatherMode === "cloudy"}
+                    onClick={() => {
+                      skySound.playTick();
+                      setWeatherMode("cloudy");
+                    }}
+                    title="Cloudy"
+                  >
+                    ☁️
+                  </button>
+                  <button
+                    type="button"
+                    className="sky-segment-btn"
+                    aria-pressed={weatherMode === "rain"}
+                    onClick={() => {
+                      skySound.playTick();
+                      setWeatherMode("rain");
+                    }}
+                    title="Rain"
+                  >
+                    🌧️
+                  </button>
+                </div>
+              </div>
+
+              {/* Row 2: Sky motion -> Toggle [ ON / OFF ] */}
+              <div className="sky-motion-row">
+                <span className={`text-[13px] font-medium ${isDaytime ? "text-[#142132]/80" : "text-white/80"}`}>
+                  Sky motion
+                </span>
+                <button
+                  type="button"
+                  role="switch"
+                  aria-checked={skyMotion}
+                  onClick={() => {
+                    skySound.playTick();
+                    setSkyMotion((prev) => !prev);
+                  }}
+                  className={`sky-motion-switch ${isDaytime ? "day" : ""}`}
+                  title={skyMotion ? "Sky motion enabled" : "Sky motion paused"}
+                >
+                  <span className="sky-motion-switch-thumb" />
+                </button>
+              </div>
+
+              {/* Row 3: Night fireworks -> Toggle [ ON / OFF ] */}
+              <div className="sky-motion-row">
+                <span className={`text-[13px] font-medium ${isDaytime ? "text-[#142132]/80" : "text-white/80"}`}>
+                  Night fireworks
+                </span>
+                <button
+                  type="button"
+                  role="switch"
+                  aria-checked={nightFireworks}
+                  onClick={() => {
+                    skySound.playTick();
+                    setNightFireworks((prev) => !prev);
+                  }}
+                  className={`sky-motion-switch ${isDaytime ? "day" : ""}`}
+                  title={nightFireworks ? "Night fireworks enabled" : "Night fireworks disabled"}
+                >
+                  <span className="sky-motion-switch-thumb" />
+                </button>
+              </div>
+
+              {/* Row 4: Ambient sound -> Volume slider + Toggle [ ON / OFF ] */}
+              <div className="sky-motion-row">
+                <span className={`text-[13px] font-medium ${isDaytime ? "text-[#142132]/80" : "text-white/80"}`}>
+                  Ambient sound
+                </span>
+                <div className="sky-volume-control">
+                  <button
+                    type="button"
+                    onClick={toggleSound}
+                    className={`cursor-pointer ${isDaytime ? "text-[#142132]/70 hover:text-[#142132]" : "text-white/70 hover:text-white"}`}
+                    title={isMuted ? "Unmute" : "Mute"}
+                  >
+                    {isMuted ? (
+                      <VolumeX className="w-3.5 h-3.5 opacity-50" />
+                    ) : (
+                      <Volume2 className="w-3.5 h-3.5" />
+                    )}
+                  </button>
+                  <input
+                    type="range"
+                    min="0"
+                    max="1"
+                    step="0.01"
+                    value={volume}
+                    onChange={(e) => handleVolumeChange(parseFloat(e.target.value))}
+                    className={`sky-volume-slider ${isDaytime ? "day" : ""}`}
+                    aria-label="Ambient volume"
+                  />
+                  <button
+                    type="button"
+                    role="switch"
+                    aria-checked={!isMuted}
+                    onClick={toggleSound}
+                    className={`sky-motion-switch ${isDaytime ? "day" : ""}`}
+                    title={!isMuted ? "Ambient sound playing" : "Ambient sound muted"}
+                  >
+                    <span className="sky-motion-switch-thumb" />
+                  </button>
+                </div>
+              </div>
             </div>
-          )}
+          </div>
         </section>
       )}
     </div>

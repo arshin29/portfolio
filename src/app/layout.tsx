@@ -1,5 +1,5 @@
 import type { Metadata, Viewport } from "next";
-import { Geist, Geist_Mono } from "next/font/google";
+import { Geist, Geist_Mono, Instrument_Serif, Kalam } from "next/font/google";
 import "./globals.css";
 
 const geistSans = Geist({
@@ -9,6 +9,18 @@ const geistSans = Geist({
 
 const geistMono = Geist_Mono({
   variable: "--font-geist-mono",
+  subsets: ["latin"],
+});
+
+const instrumentSerif = Instrument_Serif({
+  variable: "--font-instrument-serif",
+  weight: "400",
+  subsets: ["latin"],
+});
+
+const kalam = Kalam({
+  variable: "--font-kalam",
+  weight: ["300", "400", "700"],
   subsets: ["latin"],
 });
 
@@ -69,7 +81,7 @@ export default function RootLayout({
         <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
       </head>
       <body
-        className={`${geistSans.variable} ${geistMono.variable} antialiased min-h-screen flex flex-col relative`}
+        className={`${geistSans.variable} ${geistMono.variable} ${instrumentSerif.variable} ${kalam.variable} antialiased min-h-screen flex flex-col relative`}
       >
         {/* Unified atmospheric night-sky background canvas */}
         <div className="night-sky-canvas" aria-hidden="true" />
