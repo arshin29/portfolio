@@ -236,6 +236,7 @@ export default function Contact() {
               type="button"
               className="meadow-contact sky-pill"
               data-label-expanded={isExpanded || submitSuccess}
+              data-sent={submitSuccess}
               aria-label={
                 submitSuccess
                   ? "Write another note"

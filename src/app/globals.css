@@ -2428,6 +2428,10 @@ body {
   align-items: center;
 }
 
+.meadow-connect:has(.meadow-contact[data-sent="true"]) {
+  --contact-width: 206px;
+}
+
 .meadow-connect[data-open="true"] {
   width: calc(var(--contact-width) + 178px);
 }
