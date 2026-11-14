@@ -148,7 +148,8 @@ export default function TicketCard({
             <img
               src={imageSrc}
               alt={name}
-              loading="lazy"
+              width={400}
+              height={300}
               decoding="async"
               draggable={false}
               style={{ objectPosition: imagePosition, objectFit: imageFit }}

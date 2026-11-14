@@ -1,6 +1,7 @@
 "use client";
 
 import React, { useEffect, useRef, useState } from "react";
+import FireworksOverlay from "./FireworksOverlay";
 import {
   getSkySettingsForHour,
   subscribeSkyUpdate,
@@ -15,10 +16,36 @@ export default function LivingSky() {
     dispose: () => void;
   } | null>(null);
   const [hasWebGL, setHasWebGL] = useState(true);
+  const [skyReady, setSkyReady] = useState(false);
+  const [fireworksActive, setFireworksActive] = useState(false);
+  const [soundActive, setSoundActive] = useState(false);
 
   useEffect(() => {
     const canvas = canvasRef.current;
     if (!canvas) return;
+
+    // 1. Immediately apply current sky theme before asynchronous module fetching
+    const now = new Date();
+    const currentHour = now.getHours() + now.getMinutes() / 60;
+    const initial = getSkySettingsForHour(currentHour);
+
+    const applySkyTheme = (settings: SkySettings) => {
+      const isNight = settings.light < 0.45;
+      const root = document.documentElement;
+      root.classList.toggle("dark", isNight);
+      root.setAttribute("data-theme", isNight ? "night" : "day");
+      root.style.setProperty("--daylight", isNight ? "0" : "1");
+      root.style.setProperty("--theme-blend", isNight ? "0" : "1");
+      root.style.setProperty("--sky-ink", isNight ? "#f6f8fd" : "#162332");
+      root.style.setProperty("--sky-secondary", isNight ? "#cbd5e1" : "#344353");
+      root.style.setProperty("--sky-top", settings.top);
+      root.style.setProperty("--sky-mid", settings.bottom);
+      root.style.setProperty("--sky-bottom", settings.bottom);
+      root.style.setProperty("--sky-fallback-top", settings.top);
+      root.style.setProperty("--sky-fallback-bottom", settings.bottom);
+    };
+
+    applySkyTheme(initial);
 
     // Check WebGL availability
     try {
@@ -39,30 +66,10 @@ export default function LivingSky() {
       "(prefers-reduced-motion: reduce)"
     ).matches;
 
-    const applySkyTheme = (settings: SkySettings) => {
-      const isNight = settings.light < 0.45;
-      const root = document.documentElement;
-      root.classList.toggle("dark", isNight);
-      root.style.setProperty("--daylight", isNight ? "0" : "1");
-      root.style.setProperty("--theme-blend", isNight ? "0" : "1");
-      root.style.setProperty("--sky-ink", isNight ? "#f6f8fd" : "#162332");
-      root.style.setProperty("--sky-secondary", isNight ? "#cbd5e1" : "#344353");
-      root.style.setProperty("--sky-top", settings.top);
-      root.style.setProperty("--sky-bottom", settings.bottom);
-    };
-
     // Dynamically import skyScene to ensure SSR safety and bundle optimization
     import("@/components/meadow/skyScene")
       .then(({ createSky }) => {
         if (disposed || !canvasRef.current) return;
-
-        // Get initial settings based on current local time
-        const now = new Date();
-        const currentHour = now.getHours() + now.getMinutes() / 60;
-        const initial = getSkySettingsForHour(currentHour);
-
-        // Apply dark mode and theme variables matching sky brightness
-        applySkyTheme(initial);
 
         const sky = createSky(
           canvasRef.current,
@@ -85,6 +92,15 @@ export default function LivingSky() {
         );
 
         skyInstanceRef.current = sky;
+
+        // Smoothly fade in canvas only after WebGL renders its first frames
+        requestAnimationFrame(() => {
+          requestAnimationFrame(() => {
+            if (!disposed) {
+              setSkyReady(true);
+            }
+          });
+        });
       })
       .catch((err) => {
         console.warn(
@@ -97,6 +113,13 @@ export default function LivingSky() {
     // Subscribe to skyController updates (from dial scrubber, city change, or presets)
     const unsubscribe = subscribeSkyUpdate((settings: SkySettings) => {
       applySkyTheme(settings);
+
+      // Check if night fireworks should be active
+      const isNight = settings.isNight ?? (settings.light < 0.45);
+      const shouldShowFireworks = !!(isNight && settings.nightFireworks);
+      setFireworksActive(shouldShowFireworks);
+      setSoundActive(!!settings.ambientSound);
+
       if (skyInstanceRef.current) {
         skyInstanceRef.current.update({
           top: settings.top,
@@ -137,18 +160,23 @@ export default function LivingSky() {
   }, []);
 
   return (
-    <div
-      className="living-sky fixed inset-0 pointer-events-none z-[-2] overflow-hidden"
-      aria-hidden="true"
-    >
-      <canvas
-        ref={canvasRef}
-        className="w-full h-full block"
-        style={{
-          opacity: hasWebGL ? 1 : 0,
-          transition: "opacity 0.6s ease-out",
-        }}
-      />
-    </div>
+    <>
+      <div
+        className="living-sky fixed inset-0 pointer-events-none z-[-2] overflow-hidden"
+        aria-hidden="true"
+      >
+        <canvas
+          ref={canvasRef}
+          className="w-full h-full block"
+          style={{
+            opacity: skyReady ? 1 : 0,
+            transition: "opacity 0.7s ease-out",
+          }}
+        />
+      </div>
+
+      {/* Fireworks canvas layer rendered right above the sky canvas and behind content */}
+      <FireworksOverlay active={fireworksActive} soundEnabled={soundActive} />
+    </>
   );
 }

@@ -13,6 +13,7 @@ export type TechName =
 
 interface TechBadgeProps {
   name: TechName;
+  comma?: boolean;
   className?: string;
 }
 
@@ -191,8 +192,12 @@ export function TechIcon({ name }: { name: TechName }) {
   }
 }
 
-export default function TechBadge({ name, className = "" }: TechBadgeProps) {
-  return (
+export default function TechBadge({
+  name,
+  comma = false,
+  className = "",
+}: TechBadgeProps) {
+  const badge = (
     <span
       className={`sky-inline-brand sky-tech-badge select-none ${className}`}
       title={name}
@@ -202,6 +207,22 @@ export default function TechBadge({ name, className = "" }: TechBadgeProps) {
         <TechIcon name={name} />
       </span>
       <span className="sky-tech-label">{name}</span>
+    </span>
+  );
+
+  if (!comma) return badge;
+
+  // Comma rendered inside the pill — no wrapper needed, no gap possible
+  return (
+    <span
+      className={`sky-inline-brand sky-tech-badge select-none ${className}`}
+      title={name}
+      data-tech={name.toLowerCase()}
+    >
+      <span className="sky-project-mark" aria-hidden="true">
+        <TechIcon name={name} />
+      </span>
+      <span className="sky-tech-label">{name}</span><span className="sky-tech-comma-inner" aria-hidden="true">,</span>
     </span>
   );
 }

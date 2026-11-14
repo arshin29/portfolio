@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useState, useEffect, useRef } from "react";
-import { MousePointer2, PenLine } from "lucide-react";
+import { MousePointer2, PenLine, Copy, Check } from "lucide-react";
 import MeadowGarden from "./MeadowGarden";
 
 const BRAND_ICONS: Record<string, string> = {
@@ -34,6 +34,7 @@ const SOCIAL_LINKS = [
 export default function Contact() {
   const [isHovered, setIsHovered] = useState(false);
   const [isNoteOpen, setIsNoteOpen] = useState(false);
+  const [copied, setCopied] = useState(false);
   const [openPopover, setOpenPopover] = useState<"privacy" | "weather" | null>(null);
   const footerLinksRef = useRef<HTMLDivElement>(null);
 
@@ -78,6 +79,14 @@ export default function Contact() {
     window.addEventListener("sky:open-contact", handleOpenContact);
     return () => window.removeEventListener("sky:open-contact", handleOpenContact);
   }, []);
+
+  const handleCopyEmail = (e: React.MouseEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    navigator.clipboard.writeText("arshinbhande29@gmail.com");
+    setCopied(true);
+    setTimeout(() => setCopied(false), 2000);
+  };
 
   const handlePointerMove = (e: React.PointerEvent<HTMLDivElement>) => {
     if (e.pointerType === "touch") return;
@@ -175,6 +184,29 @@ export default function Contact() {
               Thanks for your note.<br />I’m looking forward to our conversation.
             </span>
           </p>
+
+          {/* Email link with copy button matching Thoufik reference */}
+          <div className="meadow-email-row mt-4 mb-2 flex items-center gap-2 select-none" aria-hidden={submitSuccess}>
+            <a
+              href="mailto:arshinbhande29@gmail.com"
+              className="text-[15px] sm:text-[16px] text-white/90 hover:text-white underline underline-offset-4 decoration-white/40 hover:decoration-white transition-colors tracking-[-0.01em]"
+            >
+              arshinbhande29@gmail.com
+            </a>
+            <button
+              type="button"
+              onClick={handleCopyEmail}
+              aria-label={copied ? "Email copied to clipboard" : "Copy email address"}
+              title={copied ? "Copied!" : "Copy email"}
+              className="p-1 rounded-md text-white/70 hover:text-white hover:bg-white/10 transition-colors inline-flex items-center justify-center cursor-pointer"
+            >
+              {copied ? (
+                <Check className="w-3.5 h-3.5 text-emerald-400 stroke-[2.4]" />
+              ) : (
+                <Copy className="w-3.5 h-3.5 stroke-[2]" />
+              )}
+            </button>
+          </div>
 
           {/* Morphing Liquid Button & 3 Social Pill Buttons */}
           <div

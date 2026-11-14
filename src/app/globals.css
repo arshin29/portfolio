@@ -41,13 +41,13 @@
 }
 
 html {
+  background: linear-gradient(180deg, var(--sky-top, #4782bb) 0%, var(--sky-mid, #7daee0) 45%, var(--sky-bottom, #cbe0f4) 100%);
+  background-attachment: fixed;
   scroll-behavior: smooth;
   scroll-padding-top: 80px;
 }
 
 .sky-app {
-  --daylight: 1;
-  --theme-blend: 1;
   --theme-midpoint: 0;
   --sky-ink: color-mix(in oklab, #f6f8fd, #162332 calc(var(--theme-blend, 1) * 100%));
   --sky-secondary: color-mix(in oklab, #e3e8f1, #344353 calc(var(--theme-blend, 1) * 100%));
@@ -61,6 +61,21 @@ html {
   color: var(--sky-ink);
   min-height: 100vh;
   position: relative;
+}
+
+[data-theme="night"] .sky-app,
+html.dark .sky-app {
+  --daylight: 0;
+  --theme-blend: 0;
+  --sky-ink: #f6f8fd;
+  --sky-secondary: #cbd5e1;
+}
+
+[data-theme="day"] .sky-app {
+  --daylight: 1;
+  --theme-blend: 1;
+  --sky-ink: #162332;
+  --sky-secondary: #344353;
 }
 
 .living-sky {
@@ -1142,6 +1157,7 @@ body {
   object-fit: cover;
   width: 100%;
   height: 100%;
+  aspect-ratio: 4 / 3;
   display: block;
   filter: contrast(0.97) saturate(0.97);
 }
@@ -2000,17 +2016,17 @@ body {
 .sky-inline-note button,
 .sky-inline-brand,
 .sky-inline-link {
-  background: var(--sky-tag-glass, rgba(255, 255, 255, 0.16));
-  font-size: inherit;
-  line-height: inherit;
-  vertical-align: baseline;
-  border-radius: 8px;
-  padding: 1px 7px 1px 26px;
+  background: var(--sky-tag-glass, rgba(255, 255, 255, 0.10));
+  font-size: 0.88em;
+  line-height: 1;
+  vertical-align: middle;
+  border-radius: 6px;
+  padding: 2px 5px 2px 19px;
   display: inline-block;
   position: relative;
-  border: 1px solid rgba(255, 255, 255, 0.22);
-  backdrop-filter: blur(14px) saturate(1.2);
-  -webkit-backdrop-filter: blur(14px) saturate(1.2);
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
   color: var(--sky-ink, inherit);
   transition: background-color 0.2s ease, border-color 0.2s ease, transform 0.2s ease;
   text-decoration: none;
@@ -2019,16 +2035,24 @@ body {
 
 .sky-inline-note button:hover,
 .sky-inline-brand:hover {
-  background: rgba(255, 255, 255, 0.25);
-  border-color: rgba(255, 255, 255, 0.38);
+  background: rgba(255, 255, 255, 0.18);
+  border-color: rgba(255, 255, 255, 0.28);
   transform: translateY(-1px);
 }
 
 .sky-tech-badge {
   cursor: default;
-  margin-left: 2px;
-  margin-right: 0px;
+  margin: 0;
+  padding-right: 6px;
   --sky-react-ink: color-mix(in oklab, #61dafb, #0284c7 calc(var(--theme-blend, 0) * 100%));
+}
+
+.sky-tech-comma-inner {
+  display: inline;
+  opacity: 0.45;
+  margin-left: 0px;
+  pointer-events: none;
+  user-select: none;
 }
 
 :root:not(.dark) .sky-tech-badge,
@@ -2047,13 +2071,13 @@ body {
 .sky-inline-link > svg {
   position: absolute;
   top: 50%;
-  left: 6px;
+  left: 4px;
   transform: translateY(-50%);
 }
 
 .sky-project-mark {
-  width: 15px;
-  height: 15px;
+  width: 13px;
+  height: 13px;
   border-radius: 50%;
   display: inline-flex;
   align-items: center;
@@ -2154,7 +2178,7 @@ body {
 
 .sky-story p {
   font-size: 17px;
-  line-height: 1.7;
+  line-height: 1.85;
   color: var(--sky-ink, #f6f8fd);
 }
 

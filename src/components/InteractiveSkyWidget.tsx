@@ -43,6 +43,9 @@ interface InteractiveSkyWidgetProps {
 export default function InteractiveSkyWidget({
   className = "",
 }: InteractiveSkyWidgetProps) {
+  // Mount state to avoid hydration mismatch
+  const [mounted, setMounted] = useState(false);
+
   // Widget Open & Reveal States
   const [isOpen, setIsOpen] = useState(false);
   const [isHovered, setIsHovered] = useState(false);
@@ -85,6 +88,11 @@ export default function InteractiveSkyWidget({
 
   const panelRef = useRef<HTMLDivElement | null>(null);
   const searchInputRef = useRef<HTMLInputElement | null>(null);
+
+  // Mark as mounted on client to prevent hydration mismatch
+  useEffect(() => {
+    setMounted(true);
+  }, []);
 
   // Reduced motion preference
   useEffect(() => {
@@ -314,7 +322,7 @@ export default function InteractiveSkyWidget({
   const toggleSound = () => {
     const nextMuted = !isMuted;
     setIsMuted(nextMuted);
-    skySound.setMuted(nextMuted);
+    skySound.setMuted(nextMuted, true);
     localStorage.setItem("sky_sound_pref", nextMuted ? "muted" : "unmuted");
   };
 
@@ -379,7 +387,8 @@ export default function InteractiveSkyWidget({
   const activeHour = isExploring && exploredHoursVal !== undefined ? exploredHoursVal : hours;
   const activeMin = isExploring && exploredMinutesVal !== undefined ? exploredMinutesVal : minutes;
   const activeDecimalHour = activeHour + activeMin / 60;
-  const isDaytime = activeHour >= 6 && activeHour < 18;
+  // Use mounted check so SSR and initial client hydration match exactly
+  const isDaytime = mounted ? (activeHour >= 6 && activeHour < 18) : false;
 
   // Sync with document element theme and dispatch real-time sky settings
   useEffect(() => {
@@ -410,6 +419,19 @@ export default function InteractiveSkyWidget({
       wind: skyMotion ? (weather?.windSpeed ? Math.min(12, weather.windSpeed) : 6) : 0,
     });
 
+    settings.isNight = !isDaytime;
+    settings.nightFireworks = nightFireworks;
+    settings.ambientSound = !isMuted;
+
+    // Keep sound manager updated with current solar altitude & weather for authentic audio
+    skySound.setWeatherState({
+      solarAltitude: settings.solarAltitude,
+      light: settings.light,
+      rain: settings.rain,
+      wind: settings.wind,
+      cloud: settings.cloud,
+    });
+
     dispatchSkyUpdate(settings);
 
     if (typeof document !== "undefined") {
@@ -430,7 +452,7 @@ export default function InteractiveSkyWidget({
         root.setAttribute("data-theme", "night");
       }
     }
-  }, [activeDecimalHour, isDaytime, weather, weatherMode, skyMotion]);
+  }, [activeDecimalHour, isDaytime, weather, weatherMode, skyMotion, nightFireworks, isMuted]);
 
   // Computed reveal state for collapsed pill
   const isRevealed = isHovered || isOpen || isMobileRevealed;

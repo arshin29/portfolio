@@ -218,13 +218,13 @@ export default function Hero() {
         </p>
 
         <p>
-          I work with <TechBadge name="React" />,{" "}
-          <TechBadge name="Next.js" />,{" "}
-          <TechBadge name="TypeScript" />,{" "}
-          <TechBadge name="Node.js" />,{" "}
-          <TechBadge name="NestJS" />,{" "}
+          I work with <TechBadge name="React" comma />{" "}
+          <TechBadge name="Next.js" comma />{" "}
+          <TechBadge name="TypeScript" comma />{" "}
+          <TechBadge name="Node.js" comma />{" "}
+          <TechBadge name="NestJS" comma />{" "}
           <TechBadge name="PostgreSQL" /> and{" "}
-          <TechBadge name="Figma" />, using AI-powered tools to turn ideas into
+          <TechBadge name="Figma" comma /> using AI-powered tools to turn ideas into
           polished, functional products.
         </p>
       </div>

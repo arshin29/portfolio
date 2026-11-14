@@ -13,6 +13,9 @@ export interface SkySettings {
   sunX: number;
   solarAltitude: number;
   phaseName: string;
+  isNight?: boolean;
+  nightFireworks?: boolean;
+  ambientSound?: boolean;
 }
 
 interface SkyStop {

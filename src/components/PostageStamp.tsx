@@ -263,6 +263,8 @@ export default function PostageStamp({
                         <img
                           src={imageSrc}
                           alt={project.name}
+                          width={1024}
+                          height={576}
                           loading="lazy"
                           decoding="async"
                           draggable={false}

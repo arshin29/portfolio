@@ -8,7 +8,7 @@ const curve = (e: number) => e ** 1.45;
 
 function getMask(stepIndex: number, total: number, direction: "top" | "bottom") {
   const r = (e: number) => `${(curve(Math.min(e, total) / total) * 100).toFixed(2)}%`;
-  return `linear-gradient(${direction === "top" ? "to top" : "to bottom"}, transparent ${r(stepIndex)}, black ${r(stepIndex + 1)}, black ${r(stepIndex + 2)}, transparent ${r(stepIndex + 3)})`;
+  return `linear-gradient(${direction === "top" ? "to top" : "to bottom"}, transparent ${r(stepIndex)}, #ffffff ${r(stepIndex + 1)}, #ffffff ${r(stepIndex + 2)}, transparent ${r(stepIndex + 3)})`;
 }
 
 interface BottomScrollBlurProps {
