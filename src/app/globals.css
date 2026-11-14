@@ -2346,6 +2346,8 @@ body {
 
 .meadow-contact-layout[data-contact-open="true"] {
   max-width: 932px;
+  grid-template-columns: minmax(0, 1fr) 304px;
+  column-gap: 40px;
 }
 
 .meadow-contact-layout:has(.meadow-paper-reveal) {
@@ -2364,6 +2366,8 @@ body {
   }
   .meadow-contact-layout[data-contact-open="true"] {
     max-width: 740px;
+    grid-template-columns: minmax(0, 1fr);
+    column-gap: 0;
   }
 }
 
@@ -2602,9 +2606,9 @@ body {
   width: 304px;
   height: 100%;
   display: grid;
-  position: absolute;
-  top: 0;
-  right: 24px;
+  position: relative;
+  top: auto;
+  right: auto;
   z-index: 10;
 }
 

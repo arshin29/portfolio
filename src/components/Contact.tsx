@@ -163,7 +163,7 @@ export default function Contact() {
     >
       <div
         className="meadow-contact-layout"
-        data-contact-open={isNoteOpen && !submitSuccess}
+        data-contact-open={isNoteOpen}
         data-message-sent={submitSuccess}
       >
         {/* Left Column: Heading, Subhead & Morphing Liquid Glass Controls */}
