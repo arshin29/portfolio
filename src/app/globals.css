@@ -2329,7 +2329,7 @@ body {
 }
 
 .meadow-contact-layout {
-  z-index: 2;
+  z-index: 10;
   overflow-anchor: none;
   grid-template-columns: minmax(0, 1fr);
   align-items: center;
@@ -2341,6 +2341,7 @@ body {
   display: grid;
   position: relative;
   width: 100%;
+  pointer-events: auto;
 }
 
 .meadow-contact-layout[data-contact-open="true"] {
