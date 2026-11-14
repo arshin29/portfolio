@@ -11,7 +11,7 @@ export default function MeadowGarden() {
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
   const containerRef = useRef<HTMLDivElement | null>(null);
   const meadowRef = useRef<any>(null);
-  const [isReady, setIsReady] = useState(false);
+  const [hasFallback, setHasFallback] = useState(false);
   const [prefersReducedMotion, setPrefersReducedMotion] = useState(false);
 
   // Maintain active sky settings for real-time WebGL uniform updates
@@ -84,10 +84,10 @@ export default function MeadowGarden() {
           reduced: prefersReducedMotion,
           surface: surfaceElement,
         });
-        setIsReady(true);
       })
       .catch((err) => {
         console.warn("WebGL meadow unavailable, using photographic fallback:", err);
+        setHasFallback(true);
       });
 
     return () => {
@@ -108,30 +108,21 @@ export default function MeadowGarden() {
     <div
       ref={containerRef}
       className="meadow-garden w-full relative z-0 pointer-events-none"
+      data-fallback={hasFallback}
       aria-hidden="true"
     >
-      {/* 
-        Instant photographic meadow backdrop:
-        Renders synchronously on first frame so there is zero empty/blank delay
-        when scrolling to the bottom. Cross-fades smoothly once WebGL compiles.
-      */}
-      <img
-        src="/sky/meadow-photographic-v2-optimized.webp"
-        alt=""
-        width="2172"
-        height="724"
-        decoding="async"
-        className={`absolute inset-0 w-full h-full object-cover object-bottom transition-opacity duration-700 pointer-events-none ${
-          isReady ? "opacity-0" : "opacity-100"
-        }`}
-      />
-
-      <canvas
-        ref={canvasRef}
-        className={`w-full h-full block touch-pan-y transition-opacity duration-700 ${
-          isReady ? "opacity-100" : "opacity-0"
-        }`}
-      />
+      {hasFallback ? (
+        <img
+          src="/sky/meadow-photographic-v2-optimized.webp"
+          alt=""
+          width="2172"
+          height="724"
+          loading="lazy"
+          decoding="async"
+        />
+      ) : (
+        <canvas ref={canvasRef} className="w-full h-full block touch-pan-y" />
+      )}
     </div>
   );
 }
